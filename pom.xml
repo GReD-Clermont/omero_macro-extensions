@@ -159,7 +159,7 @@
         <repository>
             <id>github</id>
             <name>GitHub GReD-Clermont Apache Maven Packages</name>
-            <url>https://maven.pkg.github.com/GReD-Clermont/ij_omero_extensions</url>
+            <url>https://maven.pkg.github.com/GReD-Clermont/imagej_omero_extensions</url>
         </repository>
     </distributionManagement>
 
