@@ -1,7 +1,9 @@
 package fr.igred.omero;
 
 
+import fr.igred.omero.annotations.TagAnnotationWrapper;
 import fr.igred.omero.exception.AccessException;
+import fr.igred.omero.exception.OMEROServerError;
 import fr.igred.omero.exception.ServiceException;
 import fr.igred.omero.repository.DatasetWrapper;
 import fr.igred.omero.repository.ImageWrapper;
@@ -19,21 +21,30 @@ import ij.plugin.frame.RoiManager;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 
 public class OMEROExtensions implements PlugIn, MacroExtension {
 
     private static final Client client = new Client();
 
+
+    private static final String PROJECT  = "project";
+    private static final String PROJECTS = PROJECT + "s";
+    private static final String DATASET  = "dataset";
+    private static final String DATASETS = DATASET + "s";
+    private static final String IMAGE    = "image";
+    private static final String IMAGES   = IMAGE + "s";
+    private static final String TAG      = "tag";
+    private static final String TAGS     = TAG + "s";
+
+    private static final String INVALID = "Invalid type";
+
     private final ExtensionDescriptor[] extensions = {
             ExtensionDescriptor.newDescriptor("connectToOMERO", this, ARG_STRING, ARG_NUMBER, ARG_STRING, ARG_STRING),
             ExtensionDescriptor.newDescriptor("switchGroup", this, ARG_NUMBER),
-            ExtensionDescriptor.newDescriptor("listProjects", this, ARG_OUTPUT + ARG_STRING),
-            ExtensionDescriptor.newDescriptor("getProjectName", this, ARG_NUMBER, ARG_OUTPUT + ARG_STRING),
-            ExtensionDescriptor.newDescriptor("listDatasetsInProject", this, ARG_NUMBER, ARG_OUTPUT + ARG_STRING),
-            ExtensionDescriptor.newDescriptor("getDatasetName", this, ARG_NUMBER, ARG_OUTPUT + ARG_STRING),
-            ExtensionDescriptor.newDescriptor("listImagesInDataset", this, ARG_NUMBER, ARG_OUTPUT + ARG_STRING),
-            ExtensionDescriptor.newDescriptor("getImageName", this, ARG_NUMBER, ARG_OUTPUT + ARG_STRING),
+            ExtensionDescriptor.newDescriptor("list", this, ARG_STRING, ARG_STRING + ARG_OPTIONAL, ARG_NUMBER + ARG_OPTIONAL, ARG_OUTPUT + ARG_STRING),
+            ExtensionDescriptor.newDescriptor("getName", this, ARG_STRING, ARG_NUMBER, ARG_OUTPUT + ARG_STRING),
             ExtensionDescriptor.newDescriptor("getImage", this, ARG_NUMBER),
             ExtensionDescriptor.newDescriptor("getImageWithROIs", this, ARG_NUMBER),
             ExtensionDescriptor.newDescriptor("saveROIsToImage", this, ARG_NUMBER, ARG_STRING),
@@ -41,97 +52,180 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
             };
 
 
+    private static <T extends GenericObjectWrapper<?>> String listToIDs(List<T> list) {
+        return list.stream()
+                   .mapToLong(T::getId)
+                   .mapToObj(String::valueOf)
+                   .collect(Collectors.joining(","));
+    }
+
+
     private static void connectToOMERO(String host, int port, String username, String password) {
         try {
             client.connect(host, port, username, password);
         } catch (ServiceException | ExecutionException e) {
-            IJ.log("Could not connect: " + e.getMessage());
+            IJ.error("Could not connect: " + e.getMessage());
         }
     }
 
 
-    private static String listProjects() {
-        StringBuilder ids = new StringBuilder();
+    private static String list(String type) {
+        String results = "";
         try {
-            List<ProjectWrapper> projects = client.getProjects();
-            for (ProjectWrapper project : projects) {
-                if (!ids.toString().equals("")) {
-                    ids.append(",");
-                }
-                ids.append(project.getId());
+            switch (type.toLowerCase()) {
+                case PROJECT:
+                case PROJECTS:
+                    List<ProjectWrapper> projects = client.getProjects();
+                    results = listToIDs(projects);
+                    break;
+                case DATASET:
+                case DATASETS:
+                    List<DatasetWrapper> datasets = client.getDatasets();
+                    results = listToIDs(datasets);
+                    break;
+                case IMAGE:
+                case IMAGES:
+                    List<ImageWrapper> images = client.getImages();
+                    results = listToIDs(images);
+                    break;
+                case TAG:
+                case TAGS:
+                    List<TagAnnotationWrapper> tags = client.getTags();
+                    results = listToIDs(tags);
+                    break;
+                default:
+                    IJ.error(INVALID + ": " + type + ". Possible values are: projects, datasets, images or tags.");
             }
-        } catch (ServiceException | AccessException e) {
-            IJ.log("Could not retrieve projects: " + e.getMessage());
+        } catch (ServiceException | AccessException | OMEROServerError e) {
+            IJ.error("Could not retrieve " + type + ": " + e.getMessage());
         }
-        return ids.toString();
+        return results;
     }
 
 
-    private static String getProjectName(long id) {
+    private static String list(String type, String name) {
+        String results = "";
+        try {
+            switch (type.toLowerCase()) {
+                case PROJECTS:
+                case PROJECT:
+                    List<ProjectWrapper> projects = client.getProjects(name);
+                    results = listToIDs(projects);
+                    break;
+                case DATASET:
+                case DATASETS:
+                    List<DatasetWrapper> datasets = client.getDatasets(name);
+                    results = listToIDs(datasets);
+                    break;
+                case IMAGE:
+                case IMAGES:
+                    List<ImageWrapper> images = client.getImages(name);
+                    results = listToIDs(images);
+                    break;
+                case TAG:
+                case TAGS:
+                    List<TagAnnotationWrapper> tags = client.getTags(name);
+                    results = listToIDs(tags);
+                    break;
+                default:
+                    IJ.error(INVALID + ": " + type + ". Possible values are: projects, datasets, images or tags.");
+            }
+        } catch (ServiceException | AccessException | OMEROServerError e) {
+            IJ.error("Could not retrieve project name: " + e.getMessage());
+        }
+        return results;
+    }
+
+
+    private static String list(String type, String parent, long id) {
+        String results = "";
+        try {
+            switch (parent.toLowerCase()) {
+                case PROJECTS:
+                case PROJECT:
+                    ProjectWrapper project = client.getProject(id);
+                    switch (type.toLowerCase()) {
+                        case DATASET:
+                        case DATASETS:
+                            List<DatasetWrapper> datasets = project.getDatasets();
+                            results = listToIDs(datasets);
+                            break;
+                        case IMAGE:
+                        case IMAGES:
+                            List<ImageWrapper> images = project.getImages(client);
+                            results = listToIDs(images);
+                            break;
+                        case TAG:
+                        case TAGS:
+                            List<TagAnnotationWrapper> tags = project.getTags(client);
+                            results = listToIDs(tags);
+                            break;
+                        default:
+                            IJ.error(INVALID + ": " + type + ". Possible values are: datasets, images or tags.");
+                    }
+                    break;
+                case DATASETS:
+                case DATASET:
+                    DatasetWrapper dataset = client.getDataset(id);
+                    switch (type.toLowerCase()) {
+                        case IMAGE:
+                        case IMAGES:
+                            List<ImageWrapper> images = dataset.getImages(client);
+                            results = listToIDs(images);
+                            break;
+                        case TAG:
+                        case TAGS:
+                            List<TagAnnotationWrapper> tags = dataset.getTags(client);
+                            results = listToIDs(tags);
+                            break;
+                        default:
+                            IJ.error(INVALID + ": " + type + ". Possible values are: images or tags.");
+                    }
+                    break;
+                case IMAGES:
+                case IMAGE:
+                    if (type.equals(TAGS)) results = listToIDs(client.getImage(id).getTags(client));
+                    else IJ.error("Invalid type: " + type + ". Only possible value is: tags.");
+                    break;
+                default:
+                    IJ.error(INVALID + ": " + parent + ". Possible values are: project, dataset or image.");
+            }
+        } catch (ServiceException | AccessException | ExecutionException e) {
+            IJ.error("Could not retrieve " + type + " in " + parent + ": " + e.getMessage());
+        }
+        return results;
+    }
+
+
+    private static String getName(String type, long id) {
         String name = "";
         try {
-            ProjectWrapper project = client.getProject(id);
-            name = project.getName();
-        } catch (ServiceException | AccessException e) {
-            IJ.log("Could not retrieve project name: " + e.getMessage());
-        }
-        return name;
-    }
-
-
-    private static String listDatasetsInProject(long id) {
-        String list = "";
-        try {
-            ProjectWrapper       project  = client.getProject(id);
-            List<DatasetWrapper> datasets = project.getDatasets();
-            StringBuilder        ids      = new StringBuilder();
-            for (DatasetWrapper dataset : datasets) {
-                ids.append(dataset.getId()).append(",");
+            switch (type.toLowerCase()) {
+                case PROJECTS:
+                case PROJECT:
+                    ProjectWrapper project = client.getProject(id);
+                    name = project.getName();
+                    break;
+                case DATASETS:
+                case DATASET:
+                    DatasetWrapper dataset = client.getDataset(id);
+                    name = dataset.getName();
+                    break;
+                case IMAGES:
+                case IMAGE:
+                    ImageWrapper image = client.getImage(id);
+                    name = image.getName();
+                    break;
+                case TAGS:
+                case TAG:
+                    TagAnnotationWrapper tag = client.getTag(id);
+                    name = tag.getName();
+                    break;
+                default:
+                    IJ.error(INVALID + ": " + type + ". Possible values are: project, dataset, image or tag.");
             }
-            list = ids.substring(0, ids.length() - 1);
-        } catch (ServiceException | AccessException e) {
-            IJ.log("Could not retrieve datasets: " + e.getMessage());
-        }
-        return list;
-    }
-
-
-    private static String getDatasetName(long id) {
-        String name = "";
-        try {
-            DatasetWrapper dataset = client.getDataset(id);
-            name = dataset.getName();
-        } catch (ServiceException | AccessException e) {
-            IJ.log("Could not retrieve dataset name: " + e.getMessage());
-        }
-        return name;
-    }
-
-
-    private static String listImagesInDataset(long id) {
-        String list = "";
-        try {
-            DatasetWrapper     dataset = client.getDataset(id);
-            List<ImageWrapper> images  = dataset.getImages(client);
-            StringBuilder      ids     = new StringBuilder();
-            for (ImageWrapper image : images) {
-                ids.append(image.getId()).append(",");
-            }
-            list = ids.substring(0, ids.length() - 1);
-        } catch (ServiceException | AccessException e) {
-            IJ.log("Could not retrieve images: " + e.getMessage());
-        }
-        return list;
-    }
-
-
-    private static String getImageName(long id) {
-        String name = "";
-        try {
-            ImageWrapper image = client.getImage(id);
-            name = image.getName();
-        } catch (ServiceException | AccessException e) {
-            IJ.log("Could not retrieve image name: " + e.getMessage());
+        } catch (ServiceException | AccessException | OMEROServerError e) {
+            IJ.error("Could not retrieve project name: " + e.getMessage());
         }
         return name;
     }
@@ -143,7 +237,7 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
             ImagePlus    imp   = image.toImagePlus(client);
             imp.show();
         } catch (ServiceException | AccessException | ExecutionException e) {
-            IJ.log("Could not retrieve image: " + e.getMessage());
+            IJ.error("Could not retrieve image: " + e.getMessage());
         }
     }
 
@@ -177,7 +271,7 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
                 rm.addRoi(roi);
             }
         } catch (ServiceException | AccessException | ExecutionException e) {
-            IJ.log("Could not retrieve image with ROIs: " + e.getMessage());
+            IJ.error("Could not retrieve image with ROIs: " + e.getMessage());
         }
     }
 
@@ -196,7 +290,7 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
                 image.saveROI(client, roi);
             }
         } catch (ServiceException | AccessException | ExecutionException e) {
-            IJ.log("Could not save ROIs to image: " + e.getMessage());
+            IJ.error("Could not save ROIs to image: " + e.getMessage());
         }
     }
 
@@ -217,7 +311,8 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
 
 
     public String handleExtension(String name, Object[] args) {
-        long id;
+        String type;
+        long   id;
         switch (name) {
             case "connectToOMERO":
                 String host = ((String) args[0]);
@@ -232,33 +327,29 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
                 client.switchGroup(groupId);
                 break;
 
-            case "listProjects":
-                ((String[]) args[0])[0] = listProjects();
+            case "list":
+                type = (String) args[0];
+                switch(args.length) {
+                    case 2:
+                        ((String[]) args[1])[0] = list(type);
+                        break;
+                    case 3:
+                        ((String[]) args[2])[0] = list(type, (String) args[1]);
+                        break;
+                    case 4:
+                        String parentType = (String) args[1];
+                        id = ((Double) args[2]).longValue();
+                        ((String[]) args[3])[0] = list(type, parentType, id);
+                        break;
+                    default:
+                        IJ.error("Wrong number of parameters.");
+                }
                 break;
 
-            case "getProjectName":
-                id = ((Double) args[0]).longValue();
-                ((String[]) args[1])[0] = getProjectName(id);
-                break;
-
-            case "listDatasetsInProject":
-                id = ((Double) args[0]).longValue();
-                ((String[]) args[1])[0] = listDatasetsInProject(id);
-                break;
-
-            case "getDatasetName":
-                id = ((Double) args[0]).longValue();
-                ((String[]) args[1])[0] = getDatasetName(id);
-                break;
-
-            case "listImagesInDataset":
-                id = ((Double) args[0]).longValue();
-                ((String[]) args[1])[0] = listImagesInDataset(id);
-                break;
-
-            case "getImageName":
-                id = ((Double) args[0]).longValue();
-                ((String[]) args[1])[0] = getImageName(id);
+            case "getName":
+                type = (String) args[0];
+                id = ((Double) args[1]).longValue();
+                ((String[]) args[2])[0] = getName(type, id);
                 break;
 
             case "getImage":
@@ -280,7 +371,7 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
                 break;
 
             default:
-                IJ.log("No such method: " + name);
+                IJ.error("No such method: " + name);
         }
 
         return null;
