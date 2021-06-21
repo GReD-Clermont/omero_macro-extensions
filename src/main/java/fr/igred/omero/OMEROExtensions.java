@@ -18,10 +18,13 @@ import ij.macro.MacroExtension;
 import ij.plugin.PlugIn;
 import ij.plugin.frame.RoiManager;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
+
+import static ij.macro.ExtensionDescriptor.newDescriptor;
 
 
 public class OMEROExtensions implements PlugIn, MacroExtension {
@@ -41,14 +44,18 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
     private static final String INVALID = "Invalid type";
 
     private final ExtensionDescriptor[] extensions = {
-            ExtensionDescriptor.newDescriptor("connectToOMERO", this, ARG_STRING, ARG_NUMBER, ARG_STRING, ARG_STRING),
-            ExtensionDescriptor.newDescriptor("switchGroup", this, ARG_NUMBER),
-            ExtensionDescriptor.newDescriptor("list", this, ARG_STRING, ARG_STRING + ARG_OPTIONAL, ARG_NUMBER + ARG_OPTIONAL, ARG_OUTPUT + ARG_STRING),
-            ExtensionDescriptor.newDescriptor("getName", this, ARG_STRING, ARG_NUMBER, ARG_OUTPUT + ARG_STRING),
-            ExtensionDescriptor.newDescriptor("getImage", this, ARG_NUMBER),
-            ExtensionDescriptor.newDescriptor("getImageWithROIs", this, ARG_NUMBER),
-            ExtensionDescriptor.newDescriptor("saveROIsToImage", this, ARG_NUMBER, ARG_STRING),
-            ExtensionDescriptor.newDescriptor("disconnect", this),
+            newDescriptor("connectToOMERO", this, ARG_STRING, ARG_NUMBER, ARG_STRING, ARG_STRING),
+            newDescriptor("switchGroup", this, ARG_NUMBER),
+            newDescriptor("list", this, ARG_STRING, ARG_STRING + ARG_OPTIONAL, ARG_NUMBER + ARG_OPTIONAL),
+            newDescriptor("createDataset", this, ARG_NUMBER, ARG_STRING, ARG_STRING),
+            newDescriptor("createTag", this, ARG_NUMBER, ARG_STRING, ARG_STRING),
+            newDescriptor("link", this, ARG_STRING, ARG_NUMBER, ARG_STRING, ARG_NUMBER),
+            newDescriptor("delete", this, ARG_STRING, ARG_NUMBER),
+            newDescriptor("getName", this, ARG_STRING, ARG_NUMBER),
+            newDescriptor("getImage", this, ARG_NUMBER),
+            newDescriptor("getROIs", this, ARG_NUMBER),
+            newDescriptor("saveROIs", this, ARG_NUMBER, ARG_STRING),
+            newDescriptor("disconnect", this),
             };
 
 
@@ -60,11 +67,68 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
     }
 
 
-    private static void connectToOMERO(String host, int port, String username, String password) {
+    private static boolean connect(String host, int port, String username, String password) {
+        boolean connected = false;
         try {
             client.connect(host, port, username, password);
+            connected = true;
         } catch (ServiceException | ExecutionException e) {
             IJ.error("Could not connect: " + e.getMessage());
+        }
+        return connected;
+    }
+
+
+    private static long createTag(String name, String description) {
+        long id = -1;
+        try {
+            TagAnnotationWrapper tag = new TagAnnotationWrapper(client, name, description);
+            id = tag.getId();
+        } catch (ServiceException | AccessException | ExecutionException e) {
+            IJ.error("Could not create tag: " + e.getMessage());
+        }
+        return id;
+    }
+
+
+    private static long createDataset(long projectId, String name, String description) {
+        long id = -1;
+        try {
+            ProjectWrapper project = client.getProject(projectId);
+            DatasetWrapper dataset = project.addDataset(client, name, description);
+            id = dataset.getId();
+        } catch (ServiceException | AccessException | ExecutionException e) {
+            IJ.error("Could not create dataset: " + e.getMessage());
+        }
+        return id;
+    }
+
+
+    private static void delete(String type, long id) {
+        try {
+            switch (type.toLowerCase()) {
+                case PROJECT:
+                case PROJECTS:
+                    client.deleteProject(id);
+                    break;
+                case DATASET:
+                case DATASETS:
+                    client.deleteDataset(id);
+                    break;
+                case IMAGE:
+                case IMAGES:
+                    client.deleteImage(id);
+                    break;
+                case TAG:
+                case TAGS:
+                    client.deleteTag(id);
+                    break;
+                default:
+                    IJ.error(INVALID + ": " + type + ".");
+            }
+        } catch (InterruptedException | ServiceException | AccessException | ExecutionException | OMEROServerError e) {
+            IJ.error("Could not delete " + type + ": " + e.getMessage());
+            Thread.currentThread().interrupt();
         }
     }
 
@@ -184,8 +248,11 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
                     break;
                 case IMAGES:
                 case IMAGE:
-                    if (type.equals(TAGS)) results = listToIDs(client.getImage(id).getTags(client));
-                    else IJ.error("Invalid type: " + type + ". Only possible value is: tags.");
+                    if (type.equalsIgnoreCase(TAGS) || type.equalsIgnoreCase(TAG)) {
+                        results = listToIDs(client.getImage(id).getTags(client));
+                    } else {
+                        IJ.error("Invalid type: " + type + ". Only possible value is: tags.");
+                    }
                     break;
                 default:
                     IJ.error(INVALID + ": " + parent + ". Possible values are: project, dataset or image.");
@@ -194,6 +261,88 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
             IJ.error("Could not retrieve " + type + " in " + parent + ": " + e.getMessage());
         }
         return results;
+    }
+
+
+    private static void link(String type1, long id1, String type2, long id2) {
+        try {
+            switch (type1.toLowerCase()) {
+                case PROJECTS:
+                case PROJECT:
+                    ProjectWrapper project = client.getProject(id1);
+                    switch (type2.toLowerCase()) {
+                        case DATASET:
+                        case DATASETS:
+                            project.addDataset(client, client.getDataset(id2));
+                            break;
+                        case TAG:
+                        case TAGS:
+                            project.addTag(client, id2);
+                            break;
+                        default:
+                            IJ.error(INVALID + ": " + type2 + ". Possible values are: datasets or tags.");
+                    }
+                    break;
+                case DATASETS:
+                case DATASET:
+                    DatasetWrapper dataset = client.getDataset(id1);
+                    switch (type2.toLowerCase()) {
+                        case PROJECTS:
+                        case PROJECT:
+                            client.getProject(id2).addDataset(client, dataset);
+                            break;
+                        case IMAGE:
+                        case IMAGES:
+                            dataset.addImage(client, client.getImage(id2));
+                            break;
+                        case TAG:
+                        case TAGS:dataset.addTag(client, id2);
+                            break;
+                        default:
+                            IJ.error(INVALID + ": " + type2 + ". Possible values are: images or tags.");
+                    }
+                    break;
+                case IMAGES:
+                case IMAGE:
+                    ImageWrapper image = client.getImage(id1);
+                    switch (type2.toLowerCase()) {
+                        case DATASET:
+                        case DATASETS:
+                            client.getDataset(id2).addImage(client, image);
+                            break;
+                        case TAG:
+                        case TAGS:
+                            image.addTag(client, id2);
+                            break;
+                        default:
+                            IJ.error(INVALID + ": " + type2 + ". Possible values are: datasets or tags.");
+                    }
+                    break;
+                case TAGS:
+                case TAG:
+                    switch (type2.toLowerCase()) {
+                        case PROJECTS:
+                        case PROJECT:
+                            client.getProject(id2).addTag(client, id1);
+                            break;
+                        case DATASET:
+                        case DATASETS:
+                            client.getDataset(id2).addTag(client, id1);
+                            break;
+                        case IMAGE:
+                        case IMAGES:
+                            client.getImage(id2).addTag(client, id1);
+                            break;
+                        default:
+                            IJ.error(INVALID + ": " + type2 + ". Possible values are: projects, datasets or images.");
+                    }
+                    break;
+                default:
+                    IJ.error(INVALID + ": " + type1 + ". Possible values are: project, dataset or image.");
+            }
+        } catch (ServiceException | AccessException | ExecutionException e) {
+            IJ.error("Could not link " + type2 + " and " + type1 + ": " + e.getMessage());
+        }
     }
 
 
@@ -231,52 +380,55 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
     }
 
 
-    private static void getImage(long id) {
+    private static ImagePlus getImage(long id) {
+        ImagePlus imp = null;
         try {
             ImageWrapper image = client.getImage(id);
-            ImagePlus    imp   = image.toImagePlus(client);
+            imp = image.toImagePlus(client);
             imp.show();
         } catch (ServiceException | AccessException | ExecutionException e) {
             IJ.error("Could not retrieve image: " + e.getMessage());
         }
+        return imp;
     }
 
 
-    private static void getImageWithROIs(long id) {
+    private static int getROIs(long id) {
+        List<ROIWrapper> rois = new ArrayList<>();
         try {
             ImageWrapper image = client.getImage(id);
-
-            ImagePlus imp = image.toImagePlus(client);
-            imp.show();
-
-            List<ROIWrapper> rois = image.getROIs(client);
-
-            List<Roi> ijRois = ROIWrapper.toImageJ(rois);
-
-            int index = 0;
-            for (ROIWrapper roi : rois) {
-                List<Roi> shapes = roi.toImageJ();
-                for (Roi r : shapes) {
-                    r.setProperty("INDEX", String.valueOf(index));
-                    if (rois.size() < 255) {
-                        r.setGroup(index);
-                    }
-                }
-                ijRois.addAll(shapes);
-                index++;
-            }
-            RoiManager rm = RoiManager.getRoiManager();
-            for (Roi roi : ijRois) {
-                roi.setImage(imp);
-                rm.addRoi(roi);
-            }
+            rois = image.getROIs(client);
         } catch (ServiceException | AccessException | ExecutionException e) {
             IJ.error("Could not retrieve image with ROIs: " + e.getMessage());
         }
+
+        ImagePlus imp = IJ.getImage();
+
+        List<Roi> ijRois = ROIWrapper.toImageJ(rois);
+
+        int index = 0;
+        for (ROIWrapper roi : rois) {
+            List<Roi> shapes = roi.toImageJ();
+            for (Roi r : shapes) {
+                r.setProperty("INDEX", String.valueOf(index));
+                if (rois.size() < 255) {
+                    r.setGroup(index);
+                }
+            }
+            ijRois.addAll(shapes);
+            index++;
+        }
+        RoiManager rm = RoiManager.getRoiManager();
+        for (Roi roi : ijRois) {
+            roi.setImage(imp);
+            rm.addRoi(roi);
+        }
+        return rm.getCount();
     }
 
 
-    private static void saveROIsToImage(long id, String property) {
+    private static int saveROIs(long id, String property) {
+        int result = 0;
         try {
             ImageWrapper image = client.getImage(id);
 
@@ -289,9 +441,11 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
             for (ROIWrapper roi : rois) {
                 image.saveROI(client, roi);
             }
+            result = rois.size();
         } catch (ServiceException | AccessException | ExecutionException e) {
             IJ.error("Could not save ROIs to image: " + e.getMessage());
         }
+        return result;
     }
 
 
@@ -313,57 +467,84 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
     public String handleExtension(String name, Object[] args) {
         String type;
         long   id;
+        String results = null;
         switch (name) {
             case "connectToOMERO":
                 String host = ((String) args[0]);
                 int port = ((Double) args[1]).intValue();
                 String username = ((String) args[2]);
                 String password = ((String) args[3]);
-                connectToOMERO(host, port, username, password);
+                boolean connected = connect(host, port, username, password);
+                results = String.valueOf(connected);
                 break;
 
             case "switchGroup":
                 long groupId = ((Double) args[0]).longValue();
                 client.switchGroup(groupId);
+                results = String.valueOf(client.getCurrentGroupId());
+                break;
+
+            case "createDataset":
+                id = ((Double) args[0]).longValue();
+                long dsId = createDataset(id, (String) args[1], (String) args[2]);
+                results = String.valueOf(dsId);
+                break;
+
+            case "createTag":
+                long tagId = createTag((String) args[0], (String) args[1]);
+                results = String.valueOf(tagId);
+                break;
+
+            case "delete":
+                type = (String) args[0];
+                id = ((Double) args[1]).longValue();
+                delete(type, id);
                 break;
 
             case "list":
                 type = (String) args[0];
-                switch(args.length) {
-                    case 2:
-                        ((String[]) args[1])[0] = list(type);
-                        break;
-                    case 3:
-                        ((String[]) args[2])[0] = list(type, (String) args[1]);
-                        break;
-                    case 4:
-                        String parentType = (String) args[1];
-                        id = ((Double) args[2]).longValue();
-                        ((String[]) args[3])[0] = list(type, parentType, id);
-                        break;
-                    default:
-                        IJ.error("Wrong number of parameters.");
+                if (args[1] == null && args[2] == null) {
+                    results = list(type);
+                } else if (args[1] != null && args[2] == null) {
+                    results = list(type, (String) args[1]);
+                } else if (args[1] != null) {
+                    String parentType = (String) args[1];
+                    id = ((Double) args[2]).longValue();
+                    results = list(type, parentType, id);
+                } else {
+                    IJ.error("Second argument should not be null.");
                 }
+                break;
+
+            case "link":
+                String type1 = (String) args[0];
+                long id1 = ((Double) args[1]).longValue();
+                String type2 = (String) args[2];
+                long id2 = ((Double) args[3]).longValue();
+                link(type1, id1, type2, id2);
                 break;
 
             case "getName":
                 type = (String) args[0];
                 id = ((Double) args[1]).longValue();
-                ((String[]) args[2])[0] = getName(type, id);
+                results = getName(type, id);
                 break;
 
             case "getImage":
-                getImage(((Double) args[0]).longValue());
+                ImagePlus imp = getImage(((Double) args[0]).longValue());
+                if (imp != null) results = String.valueOf(imp.getID());
                 break;
 
-            case "getImageWithROIs":
-                getImageWithROIs(((Double) args[0]).longValue());
+            case "getROIs":
+                int nIJROIs = getROIs(((Double) args[0]).longValue());
+                results = String.valueOf(nIJROIs);
                 break;
 
-            case "saveROIsToImage":
+            case "saveROIs":
                 long imageId = ((Double) args[0]).longValue();
                 String property = ((String) args[1]);
-                saveROIsToImage(imageId, property);
+                int nROIs = saveROIs(imageId, property);
+                results = String.valueOf(nROIs);
                 break;
 
             case "disconnect":
@@ -374,7 +555,7 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
                 IJ.error("No such method: " + name);
         }
 
-        return null;
+        return results;
     }
 
 }

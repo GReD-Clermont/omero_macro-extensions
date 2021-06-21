@@ -31,40 +31,40 @@ Once connected, projects, datasets, images and tags IDs can be listed, and their
 * Projects:
 
 ```
-Ext.list("projects", projects);
+projects = Ext.list("projects");
 print(projects);
-projectIds=split(projects,",");
-Ext.getName("project", projectIds[0], projectName);
+projectIds = split(projects,",");
+projectName = Ext.getName("project", projectIds[0]);
 print(projectName);
 ```
 
 * Datasets:
 
 ```
-Ext.list("datasets", datasets);
+datasets = Ext.list("datasets");
 print(datasets);
-datasetIds=split(datasets,",");
-Ext.getName("dataset", datasetIds[0], datasetName);
+datasetIds = split(datasets,",");
+datasetName = Ext.getName("dataset", datasetIds[0]);
 print(datasetName);
 ```
 
 * Images:
 
 ```
-Ext.list("images", images);
+images = Ext.list("images");
 print(images);
-imageIds=split(images,",");
-Ext.getName("image", imageIds[0], imageName);
+imageIds = split(images,",");
+imageName = Ext.getName("image", imageIds[0]);
 print(imageName);
 ```
 
 * Tags:
 
 ```
-Ext.list("tags", tags);
+tags = Ext.list("tags");
 print(tags);
-projectIds=split(tags,",");
-Ext.getName("tag", tagIds[0], tagName);
+projectIds = split(tags,",");
+tagName = Ext.getName("tag", tagIds[0]);
 print(tagName);
 ```
 
@@ -75,25 +75,25 @@ It is also possible to list objects with a specific name:
 * Projects:
 
 ```
-Ext.list("projects", "name", projects);
+projects = Ext.list("projects", "name");
 ```
 
 * Datasets:
 
 ```
-Ext.list("datasets", "name", projects);
+datasets = Ext.list("datasets", "name");
 ```
 
 * Images:
 
 ```
-Ext.list("images", "name", projects);
+images = Ext.list("images", "name");
 ```
 
 * Tags:
 
 ```
-Ext.list("tags", "name", projects);
+tags = Ext.list("tags", "name");
 ```
 
 ### Listing objects inside a given repository object
@@ -103,52 +103,82 @@ Each object ID can then be used to retrieve the contained objects (IDs and names
 It is, for example, possible to list datasets inside a project:
 
 ```
-Ext.list("datasets", "project", projectIds[0], datasets);
+datasets = Ext.list("datasets", "project", projectIds[0]);
 print(datasets);
-datasetIds=split(datasets,",");
-Ext.getName("dataset", datasetIds[0], datasetName);
+datasetIds = split(datasets,",");
+datasetName = Ext.getName("dataset", datasetIds[0]);
 print(datasetName);
 ```
 
 It is also possible to list tags attached to an image:
 
 ```
-Ext.list("tags", "image", imageIds[0], tags);
+tags = Ext.list("tags", "image", imageIds[0]);
 print(tags);
-datasetIds=split(tags,",");
-Ext.getName("tag", tagIds[0], tagName);
+tagIds = split(tags,",");
+tagName = Ext.getName("tag", tagIds[0]);
 print(tagName);
 ```
 
 Similarly, a dataset ID can be used to retrieve its images:
 
 ```
-Ext.list("images", "dataset", datasetIds[0], images);
+images = Ext.list("images", "dataset", datasetIds[0]);
 print(images);
-imageIds=split(images,",");
-Ext.getImageName(imageIds[0], imageName);
+imageIds = split(images,",");
+imageName = Ext.getImageName(imageIds[0]);
 print(imageName);
 ```
 
-### Images
+### Creating datasets and tags
+
+Datasets can be created with *Ext.createDataset*:
+
+```
+datasetId = Ext.createDataset(projectId, name, description);
+```
+
+Tags can be created with *Ext.createTag*:
+
+```
+datasetId = Ext.createTag(name, description);
+```
+
+### Linking objects
+
+Objects can be linked with *Ext.link*, e.g.:
+
+```
+Ext.link("dataset", datasetId, "tag", tagId);
+```
+
+### Deleting objects
+
+Objects can be deleted with *Ext.delete*:
+
+```
+Ext.delete("project", projectId);
+```
+
+### Opening images
 
 Pixel intensities can be retrieved from images:
 
-``````
-Ext.getImage(imageIds[0]);
-``````
+```
+imageplusID = Ext.getImage(imageIds[0]);
+```
 
-ROIs from OMERO can also be added to the ROI manager when opening an image:
+ROIs from OMERO can also be added to the ROI manager (and the current image):
 
-``````
-Ext.getImageWithROIs(imageIds[0]);
-``````
+```
+nIJROIs = Ext.getROIs(imageIds[0]);
+```
 
 Conversely, ImageJ ROIs can also be saved to OMERO (the property is used to group ImageJ shapes into a single 3D/4D ROI
 on OMERO):
 
 ```
-saveROIsToImage(imageId, property);
+nROIS = saveROIsToImage(imageId, property);
 ```
 
 ## License
