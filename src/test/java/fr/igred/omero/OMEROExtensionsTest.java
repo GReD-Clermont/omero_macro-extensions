@@ -3,12 +3,18 @@ package fr.igred.omero;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Random;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 
 class OMEROExtensionsTest {
@@ -130,6 +136,39 @@ class OMEROExtensionsTest {
         Object[] args3 = {"tag", id};
         ext.handleExtension("delete", args3);
         assertNotNull(id);
+    }
+
+
+    @Disabled("Adding files is not working for now")
+    @ParameterizedTest
+    @CsvSource(delimiter = ';', value = {"project;1.0;./test1.txt",
+                                         "projects;1.0;./test2.txt",
+                                         "dataset;1.0;./test3.txt",
+                                         "datasets;1.0;./test4.txt",
+                                         "images;1.0;./test5.txt",
+                                         "image;1.0;./test6.txt",})
+    void testAddAndDeleteFile(String type, double id, String filename) throws Exception {
+        File file = new File(filename);
+        if (!file.createNewFile())
+            System.err.println("\"" + file.getCanonicalPath() + "\" could not be created.");
+
+        byte[] array = new byte[2 * 262144 + 20];
+        new Random().nextBytes(array);
+        String generatedString = new String(array, StandardCharsets.UTF_8);
+        try (PrintStream out = new PrintStream(new FileOutputStream(filename))) {
+            out.print(generatedString);
+        }
+
+        Object[] args   = {type, id, filename};
+        String   result = ext.handleExtension("addFile", args);
+        assertNotEquals(-1L, Long.parseLong(result));
+
+        if (!file.delete())
+            System.err.println("\"" + file.getCanonicalPath() + "\" could not be deleted.");
+
+        double   fileId = Double.parseDouble(result);
+        Object[] args2  = {fileId};
+        ext.handleExtension("deleteFile", args2);
     }
 
 }

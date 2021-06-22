@@ -6,6 +6,7 @@ import fr.igred.omero.exception.AccessException;
 import fr.igred.omero.exception.OMEROServerError;
 import fr.igred.omero.exception.ServiceException;
 import fr.igred.omero.repository.DatasetWrapper;
+import fr.igred.omero.repository.GenericRepositoryObjectWrapper;
 import fr.igred.omero.repository.ImageWrapper;
 import fr.igred.omero.repository.ProjectWrapper;
 import fr.igred.omero.roi.ROIWrapper;
@@ -18,6 +19,7 @@ import ij.macro.MacroExtension;
 import ij.plugin.PlugIn;
 import ij.plugin.frame.RoiManager;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -51,7 +53,9 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
             newDescriptor("createProject", this, ARG_NUMBER, ARG_STRING, ARG_STRING),
             newDescriptor("createTag", this, ARG_NUMBER, ARG_STRING, ARG_STRING),
             newDescriptor("link", this, ARG_STRING, ARG_NUMBER, ARG_STRING, ARG_NUMBER),
+            newDescriptor("addFile", this, ARG_STRING, ARG_NUMBER, ARG_STRING),
             newDescriptor("delete", this, ARG_STRING, ARG_NUMBER),
+            newDescriptor("deleteFile", this, ARG_NUMBER),
             newDescriptor("getName", this, ARG_STRING, ARG_NUMBER),
             newDescriptor("getImage", this, ARG_NUMBER),
             newDescriptor("getROIs", this, ARG_NUMBER),
@@ -77,6 +81,79 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
             IJ.error("Could not connect: " + e.getMessage());
         }
         return connected;
+    }
+
+
+    private static GenericObjectWrapper<?> getObject(String type, long id) {
+        GenericObjectWrapper<?> object = null;
+        if (type.equalsIgnoreCase(TAG) || type.equalsIgnoreCase(TAGS)) {
+            try {
+                object = client.getTag(id);
+            } catch (OMEROServerError | ServiceException e) {
+                IJ.error("Could not retrieve tag: " + e.getMessage());
+            }
+        } else {
+            object = getRepositoryObject(type, id);
+        }
+        return object;
+    }
+
+
+    private static GenericRepositoryObjectWrapper<?> getRepositoryObject(String type, long id) {
+        GenericRepositoryObjectWrapper<?> object = null;
+        try {
+            switch (type.toLowerCase()) {
+                case PROJECT:
+                case PROJECTS:
+                    object = client.getProject(id);
+                    break;
+                case DATASET:
+                case DATASETS:
+                    object = client.getDataset(id);
+                    break;
+                case IMAGE:
+                case IMAGES:
+                    object = client.getImage(id);
+                    break;
+                default:
+                    IJ.error(INVALID + ": " + type + ".");
+            }
+        } catch (ServiceException | AccessException e) {
+            IJ.error("Could not retrieve object: " + e.getMessage());
+        }
+        return object;
+    }
+
+
+    private static long addFile(String type, long id, String path) {
+        long fileId = -1;
+
+        File file = new File(path);
+
+        GenericRepositoryObjectWrapper<?> object = getRepositoryObject(type, id);
+        if (object != null && file.isFile()) {
+            try {
+                fileId = object.addFile(client, file);
+            } catch (ExecutionException e) {
+                IJ.error("Could not add file to object: " + e.getMessage());
+            } catch (InterruptedException e) {
+                IJ.error(e.getMessage());
+                Thread.currentThread().interrupt();
+            }
+        }
+        return fileId;
+    }
+
+
+    private static void deleteFile(long fileId) {
+        try {
+            client.deleteFile(fileId);
+        } catch (ServiceException | AccessException | ExecutionException | OMEROServerError e) {
+            IJ.error("Could not delete file: " + e.getMessage());
+        } catch (InterruptedException e) {
+            IJ.error(e.getMessage());
+            Thread.currentThread().interrupt();
+        }
     }
 
 
@@ -118,29 +195,13 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
 
 
     private static void delete(String type, long id) {
+        GenericObjectWrapper<?> object = getObject(type, id);
         try {
-            switch (type.toLowerCase()) {
-                case PROJECT:
-                case PROJECTS:
-                    client.delete(client.getProject(id));
-                    break;
-                case DATASET:
-                case DATASETS:
-                    client.delete(client.getDataset(id));
-                    break;
-                case IMAGE:
-                case IMAGES:
-                    client.delete(client.getImage(id));
-                    break;
-                case TAG:
-                case TAGS:
-                    client.delete(client.getTag(id));
-                    break;
-                default:
-                    IJ.error(INVALID + ": " + type + ".");
-            }
-        } catch (InterruptedException | ServiceException | AccessException | ExecutionException | OMEROServerError e) {
+            client.delete(object);
+        } catch (ServiceException | AccessException | ExecutionException | OMEROServerError e) {
             IJ.error("Could not delete " + type + ": " + e.getMessage());
+        } catch (InterruptedException e) {
+            IJ.error(e.getMessage());
             Thread.currentThread().interrupt();
         }
     }
@@ -291,7 +352,7 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
                     }
                     break;
                 default:
-                    IJ.error(INVALID + ": " + parent + ". Possible values are: project, dataset or image.");
+                    IJ.error(INVALID + ": " + parent + ". Possible values are: project, dataset, image or tag.");
             }
         } catch (ServiceException | AccessException | ExecutionException | OMEROServerError e) {
             IJ.error("Could not retrieve " + type + " in " + parent + ": " + e.getMessage());
@@ -332,7 +393,8 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
                             dataset.addImage(client, client.getImage(id2));
                             break;
                         case TAG:
-                        case TAGS:dataset.addTag(client, id2);
+                        case TAGS:
+                            dataset.addTag(client, id2);
                             break;
                         default:
                             IJ.error(INVALID + ": " + type2 + ". Possible values are: images or tags.");
@@ -383,34 +445,17 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
 
 
     private static String getName(String type, long id) {
-        String name = "";
-        try {
-            switch (type.toLowerCase()) {
-                case PROJECTS:
-                case PROJECT:
-                    ProjectWrapper project = client.getProject(id);
-                    name = project.getName();
-                    break;
-                case DATASETS:
-                case DATASET:
-                    DatasetWrapper dataset = client.getDataset(id);
-                    name = dataset.getName();
-                    break;
-                case IMAGES:
-                case IMAGE:
-                    ImageWrapper image = client.getImage(id);
-                    name = image.getName();
-                    break;
-                case TAGS:
-                case TAG:
-                    TagAnnotationWrapper tag = client.getTag(id);
-                    name = tag.getName();
-                    break;
-                default:
-                    IJ.error(INVALID + ": " + type + ". Possible values are: project, dataset, image or tag.");
-            }
-        } catch (ServiceException | AccessException | OMEROServerError e) {
-            IJ.error("Could not retrieve project name: " + e.getMessage());
+        String name = null;
+
+        GenericObjectWrapper<?> object = getObject(type, id);
+        if (object instanceof ProjectWrapper) {
+            name = ((ProjectWrapper) object).getName();
+        } else if (object instanceof DatasetWrapper) {
+            name = ((DatasetWrapper) object).getName();
+        } else if (object instanceof ImageWrapper) {
+            name = ((ImageWrapper) object).getName();
+        } else if (object instanceof TagAnnotationWrapper) {
+            name = ((TagAnnotationWrapper) object).getName();
         }
         return name;
     }
@@ -518,6 +563,18 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
                 long groupId = ((Double) args[0]).longValue();
                 client.switchGroup(groupId);
                 results = String.valueOf(client.getCurrentGroupId());
+                break;
+
+            case "addFile":
+                type = (String) args[0];
+                id = ((Double) args[1]).longValue();
+                long fileId = addFile(type, id, (String) args[2]);
+                results = String.valueOf(fileId);
+                break;
+
+            case "deleteFile":
+                id = ((Double) args[0]).longValue();
+                deleteFile(id);
                 break;
 
             case "createDataset":
