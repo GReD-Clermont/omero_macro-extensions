@@ -577,8 +577,8 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
                 break;
 
             case "getROIs":
-                int nIJROIs = getROIs(((Double) args[0]).longValue());
-                results = String.valueOf(nIJROIs);
+                int nIJRois = getROIs(((Double) args[0]).longValue());
+                results = String.valueOf(nIJRois);
                 break;
 
             case "saveROIs":
