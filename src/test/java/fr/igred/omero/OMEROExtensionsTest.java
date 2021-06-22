@@ -31,8 +31,8 @@ class OMEROExtensionsTest {
 
 
     @ParameterizedTest
-    @CsvSource(delimiter = ';', value = {"list;projects;1,2,3",
-                                         "list;project;1,2,3",
+    @CsvSource(delimiter = ';', value = {"list;projects;1,2",
+                                         "list;project;1,2",
                                          "list;datasets;1,2,3",
                                          "list;dataset;1,2,3",
                                          "list;images;1,2,3,4",
@@ -47,8 +47,8 @@ class OMEROExtensionsTest {
 
 
     @ParameterizedTest
-    @CsvSource(delimiter = ';', value = {"list;projects;TestProject;2,3",
-                                         "list;project;TestProject;2,3",
+    @CsvSource(delimiter = ';', value = {"list;projects;TestProject;1,2",
+                                         "list;project;TestProject;1,2",
                                          "list;datasets;TestDatasetImport;2",
                                          "list;dataset;TestDatasetImport;2",
                                          "list;images;image1.fake;1,2,4",
@@ -63,12 +63,18 @@ class OMEROExtensionsTest {
 
 
     @ParameterizedTest
-    @CsvSource(delimiter = ';', value = {"list;datasets;project;2.0;1,2",
-                                         "list;dataset;projects;2.0;1,2",
+    @CsvSource(delimiter = ';', value = {"list;datasets;project;1.0;1,2",
+                                         "list;dataset;projects;1.0;1,2",
                                          "list;images;dataset;1.0;1,2,3",
                                          "list;image;datasets;1.0;1,2,3",
                                          "list;tags;image;1.0;1,2",
-                                         "list;tag;images;1.0;1,2",})
+                                         "list;tag;images;1.0;1,2",
+                                         "list;projects;tag;1.0;2",
+                                         "list;project;tags;1.0;2",
+                                         "list;datasets;tag;1.0;3",
+                                         "list;dataset;tags;1.0;3",
+                                         "list;images;tag;1.0;1,2,4",
+                                         "list;image;tags;1.0;1,2,4",})
     void testListFrom(String extension, String type, String parent, double id, String output) {
         Object[] args   = {type, parent, id};
         String   result = ext.handleExtension(extension, args);
@@ -77,8 +83,8 @@ class OMEROExtensionsTest {
 
 
     @ParameterizedTest
-    @CsvSource(delimiter = ';', value = {"getName;project;2.0;TestProject",
-                                         "getName;projects;2.0;TestProject",
+    @CsvSource(delimiter = ';', value = {"getName;project;1.0;TestProject",
+                                         "getName;projects;1.0;TestProject",
                                          "getName;dataset;1.0;TestDataset",
                                          "getName;datasets;1.0;TestDataset",
                                          "getName;images;1.0;image1.fake",
@@ -89,6 +95,17 @@ class OMEROExtensionsTest {
         Object[] args   = {type, id};
         String   result = ext.handleExtension(extension, args);
         assertEquals(output, result);
+    }
+
+
+    @Test
+    void testCreateProject() {
+        Object[] args   = {"toDelete", "toBeDeleted"};
+        String   result = ext.handleExtension("createProject", args);
+        Double   id     = Double.parseDouble(result);
+        Object[] args2  = {"project", id};
+        ext.handleExtension("delete", args2);
+        assertNotNull(id);
     }
 
 

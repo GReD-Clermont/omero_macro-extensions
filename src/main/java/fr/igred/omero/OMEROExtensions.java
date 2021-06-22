@@ -267,10 +267,33 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
                         IJ.error("Invalid type: " + type + ". Only possible value is: tags.");
                     }
                     break;
+                case TAGS:
+                case TAG:
+                    TagAnnotationWrapper tag = client.getTag(id);
+                    switch (type.toLowerCase()) {
+                        case PROJECT:
+                        case PROJECTS:
+                            List<ProjectWrapper> projects = tag.getProjects(client);
+                            results = listToIDs(projects);
+                            break;
+                        case DATASET:
+                        case DATASETS:
+                            List<DatasetWrapper> datasets = tag.getDatasets(client);
+                            results = listToIDs(datasets);
+                            break;
+                        case IMAGE:
+                        case IMAGES:
+                            List<ImageWrapper> images = tag.getImages(client);
+                            results = listToIDs(images);
+                            break;
+                        default:
+                            IJ.error(INVALID + ": " + type + ". Possible values are: projects, datasets or images.");
+                    }
+                    break;
                 default:
                     IJ.error(INVALID + ": " + parent + ". Possible values are: project, dataset or image.");
             }
-        } catch (ServiceException | AccessException | ExecutionException e) {
+        } catch (ServiceException | AccessException | ExecutionException | OMEROServerError e) {
             IJ.error("Could not retrieve " + type + " in " + parent + ": " + e.getMessage());
         }
         return results;
