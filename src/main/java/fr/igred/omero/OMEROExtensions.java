@@ -22,7 +22,9 @@ import ij.plugin.frame.RoiManager;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
@@ -33,15 +35,10 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
 
     private static final Client client = new Client();
 
-
-    private static final String PROJECT  = "project";
-    private static final String PROJECTS = PROJECT + "s";
-    private static final String DATASET  = "dataset";
-    private static final String DATASETS = DATASET + "s";
-    private static final String IMAGE    = "image";
-    private static final String IMAGES   = IMAGE + "s";
-    private static final String TAG      = "tag";
-    private static final String TAGS     = TAG + "s";
+    private static final String PROJECT = "project";
+    private static final String DATASET = "dataset";
+    private static final String IMAGE   = "image";
+    private static final String TAG     = "tag";
 
     private static final String INVALID = "Invalid type";
 
@@ -55,7 +52,6 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
             newDescriptor("link", this, ARG_STRING, ARG_NUMBER, ARG_STRING, ARG_NUMBER),
             newDescriptor("addFile", this, ARG_STRING, ARG_NUMBER, ARG_STRING),
             newDescriptor("delete", this, ARG_STRING, ARG_NUMBER),
-            newDescriptor("deleteFile", this, ARG_NUMBER),
             newDescriptor("getName", this, ARG_STRING, ARG_NUMBER),
             newDescriptor("getImage", this, ARG_NUMBER),
             newDescriptor("getROIs", this, ARG_NUMBER),
@@ -72,6 +68,16 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
     }
 
 
+    private static String singularType(String type) {
+        String singular = type.toLowerCase();
+        int    length   = singular.length();
+        if (singular.charAt(length - 1) == 's') {
+            singular = singular.substring(0, length - 1);
+        }
+        return singular;
+    }
+
+
     private static boolean connect(String host, int port, String username, String password) {
         boolean connected = false;
         try {
@@ -85,8 +91,10 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
 
 
     private static GenericObjectWrapper<?> getObject(String type, long id) {
+        String singularType = singularType(type);
+
         GenericObjectWrapper<?> object = null;
-        if (type.equalsIgnoreCase(TAG) || type.equalsIgnoreCase(TAGS)) {
+        if (singularType.equals(TAG)) {
             try {
                 object = client.getTag(id);
             } catch (OMEROServerError | ServiceException e) {
@@ -100,19 +108,18 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
 
 
     private static GenericRepositoryObjectWrapper<?> getRepositoryObject(String type, long id) {
+        String singularType = singularType(type);
+
         GenericRepositoryObjectWrapper<?> object = null;
         try {
-            switch (type.toLowerCase()) {
+            switch (singularType) {
                 case PROJECT:
-                case PROJECTS:
                     object = client.getProject(id);
                     break;
                 case DATASET:
-                case DATASETS:
                     object = client.getDataset(id);
                     break;
                 case IMAGE:
-                case IMAGES:
                     object = client.getImage(id);
                     break;
                 default:
@@ -197,7 +204,7 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
     private static void delete(String type, long id) {
         GenericObjectWrapper<?> object = getObject(type, id);
         try {
-            client.delete(object);
+            if (object != null) client.delete(object);
         } catch (ServiceException | AccessException | ExecutionException | OMEROServerError e) {
             IJ.error("Could not delete " + type + ": " + e.getMessage());
         } catch (InterruptedException e) {
@@ -208,26 +215,24 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
 
 
     private static String list(String type) {
+        String singularType = singularType(type);
+
         String results = "";
         try {
-            switch (type.toLowerCase()) {
+            switch (singularType) {
                 case PROJECT:
-                case PROJECTS:
                     List<ProjectWrapper> projects = client.getProjects();
                     results = listToIDs(projects);
                     break;
                 case DATASET:
-                case DATASETS:
                     List<DatasetWrapper> datasets = client.getDatasets();
                     results = listToIDs(datasets);
                     break;
                 case IMAGE:
-                case IMAGES:
                     List<ImageWrapper> images = client.getImages();
                     results = listToIDs(images);
                     break;
                 case TAG:
-                case TAGS:
                     List<TagAnnotationWrapper> tags = client.getTags();
                     results = listToIDs(tags);
                     break;
@@ -242,26 +247,24 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
 
 
     private static String list(String type, String name) {
+        String singularType = singularType(type);
+
         String results = "";
         try {
-            switch (type.toLowerCase()) {
-                case PROJECTS:
+            switch (singularType) {
                 case PROJECT:
                     List<ProjectWrapper> projects = client.getProjects(name);
                     results = listToIDs(projects);
                     break;
                 case DATASET:
-                case DATASETS:
                     List<DatasetWrapper> datasets = client.getDatasets(name);
                     results = listToIDs(datasets);
                     break;
                 case IMAGE:
-                case IMAGES:
                     List<ImageWrapper> images = client.getImages(name);
                     results = listToIDs(images);
                     break;
                 case TAG:
-                case TAGS:
                     List<TagAnnotationWrapper> tags = client.getTags(name);
                     results = listToIDs(tags);
                     break;
@@ -276,25 +279,24 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
 
 
     private static String list(String type, String parent, long id) {
+        String singularType   = singularType(type);
+        String singularParent = singularType(parent);
+
         String results = "";
         try {
-            switch (parent.toLowerCase()) {
-                case PROJECTS:
+            switch (singularParent) {
                 case PROJECT:
                     ProjectWrapper project = client.getProject(id);
-                    switch (type.toLowerCase()) {
+                    switch (singularType) {
                         case DATASET:
-                        case DATASETS:
                             List<DatasetWrapper> datasets = project.getDatasets();
                             results = listToIDs(datasets);
                             break;
                         case IMAGE:
-                        case IMAGES:
                             List<ImageWrapper> images = project.getImages(client);
                             results = listToIDs(images);
                             break;
                         case TAG:
-                        case TAGS:
                             List<TagAnnotationWrapper> tags = project.getTags(client);
                             results = listToIDs(tags);
                             break;
@@ -302,17 +304,14 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
                             IJ.error(INVALID + ": " + type + ". Possible values are: datasets, images or tags.");
                     }
                     break;
-                case DATASETS:
                 case DATASET:
                     DatasetWrapper dataset = client.getDataset(id);
-                    switch (type.toLowerCase()) {
+                    switch (singularType) {
                         case IMAGE:
-                        case IMAGES:
                             List<ImageWrapper> images = dataset.getImages(client);
                             results = listToIDs(images);
                             break;
                         case TAG:
-                        case TAGS:
                             List<TagAnnotationWrapper> tags = dataset.getTags(client);
                             results = listToIDs(tags);
                             break;
@@ -320,30 +319,25 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
                             IJ.error(INVALID + ": " + type + ". Possible values are: images or tags.");
                     }
                     break;
-                case IMAGES:
                 case IMAGE:
-                    if (type.equalsIgnoreCase(TAGS) || type.equalsIgnoreCase(TAG)) {
+                    if (singularType.equals(TAG)) {
                         results = listToIDs(client.getImage(id).getTags(client));
                     } else {
                         IJ.error("Invalid type: " + type + ". Only possible value is: tags.");
                     }
                     break;
-                case TAGS:
                 case TAG:
                     TagAnnotationWrapper tag = client.getTag(id);
-                    switch (type.toLowerCase()) {
+                    switch (singularType) {
                         case PROJECT:
-                        case PROJECTS:
                             List<ProjectWrapper> projects = tag.getProjects(client);
                             results = listToIDs(projects);
                             break;
                         case DATASET:
-                        case DATASETS:
                             List<DatasetWrapper> datasets = tag.getDatasets(client);
                             results = listToIDs(datasets);
                             break;
                         case IMAGE:
-                        case IMAGES:
                             List<ImageWrapper> images = tag.getImages(client);
                             results = listToIDs(images);
                             break;
@@ -362,81 +356,34 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
 
 
     private static void link(String type1, long id1, String type2, long id2) {
+        String t1 = singularType(type1);
+        String t2 = singularType(type2);
+
+        Map<String, Long> map = new HashMap<>(2);
+        map.put(t1, id1);
+        map.put(t2, id2);
+
+        Long datasetId = map.get(DATASET);
+        Long projectId = map.get(PROJECT);
+        Long imageId   = map.get(IMAGE);
+        Long tagId     = map.get(TAG);
+
         try {
-            switch (type1.toLowerCase()) {
-                case PROJECTS:
-                case PROJECT:
-                    ProjectWrapper project = client.getProject(id1);
-                    switch (type2.toLowerCase()) {
-                        case DATASET:
-                        case DATASETS:
-                            project.addDataset(client, client.getDataset(id2));
-                            break;
-                        case TAG:
-                        case TAGS:
-                            project.addTag(client, id2);
-                            break;
-                        default:
-                            IJ.error(INVALID + ": " + type2 + ". Possible values are: datasets or tags.");
-                    }
-                    break;
-                case DATASETS:
-                case DATASET:
-                    DatasetWrapper dataset = client.getDataset(id1);
-                    switch (type2.toLowerCase()) {
-                        case PROJECTS:
-                        case PROJECT:
-                            client.getProject(id2).addDataset(client, dataset);
-                            break;
-                        case IMAGE:
-                        case IMAGES:
-                            dataset.addImage(client, client.getImage(id2));
-                            break;
-                        case TAG:
-                        case TAGS:
-                            dataset.addTag(client, id2);
-                            break;
-                        default:
-                            IJ.error(INVALID + ": " + type2 + ". Possible values are: images or tags.");
-                    }
-                    break;
-                case IMAGES:
-                case IMAGE:
-                    ImageWrapper image = client.getImage(id1);
-                    switch (type2.toLowerCase()) {
-                        case DATASET:
-                        case DATASETS:
-                            client.getDataset(id2).addImage(client, image);
-                            break;
-                        case TAG:
-                        case TAGS:
-                            image.addTag(client, id2);
-                            break;
-                        default:
-                            IJ.error(INVALID + ": " + type2 + ". Possible values are: datasets or tags.");
-                    }
-                    break;
-                case TAGS:
-                case TAG:
-                    switch (type2.toLowerCase()) {
-                        case PROJECTS:
-                        case PROJECT:
-                            client.getProject(id2).addTag(client, id1);
-                            break;
-                        case DATASET:
-                        case DATASETS:
-                            client.getDataset(id2).addTag(client, id1);
-                            break;
-                        case IMAGE:
-                        case IMAGES:
-                            client.getImage(id2).addTag(client, id1);
-                            break;
-                        default:
-                            IJ.error(INVALID + ": " + type2 + ". Possible values are: projects, datasets or images.");
-                    }
-                    break;
-                default:
-                    IJ.error(INVALID + ": " + type1 + ". Possible values are: project, dataset or image.");
+            // Link tag to repository object
+            if (t1.equals(TAG) ^ t2.equals(TAG)) {
+                String obj = t1.equals(TAG) ? t2 : t1;
+
+                GenericRepositoryObjectWrapper<?> object = getRepositoryObject(obj, map.get(obj));
+                if (object != null) object.addTag(client, tagId);
+            } else if (datasetId == null || (projectId == null && imageId == null)) {
+                IJ.error("Cannot link " + type1 + " and " + type2);
+            } else { // Or link dataset to image or project
+                DatasetWrapper dataset = client.getDataset(datasetId);
+                if (projectId != null) {
+                    client.getProject(projectId).addDataset(client, dataset);
+                } else {
+                    dataset.addImage(client, client.getImage(imageId));
+                }
             }
         } catch (ServiceException | AccessException | ExecutionException e) {
             IJ.error("Could not link " + type2 + " and " + type1 + ": " + e.getMessage());
