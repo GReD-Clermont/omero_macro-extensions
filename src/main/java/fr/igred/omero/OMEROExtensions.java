@@ -48,6 +48,7 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
             newDescriptor("switchGroup", this, ARG_NUMBER),
             newDescriptor("list", this, ARG_STRING, ARG_STRING + ARG_OPTIONAL, ARG_NUMBER + ARG_OPTIONAL),
             newDescriptor("createDataset", this, ARG_NUMBER, ARG_STRING, ARG_STRING),
+            newDescriptor("createProject", this, ARG_NUMBER, ARG_STRING, ARG_STRING),
             newDescriptor("createTag", this, ARG_NUMBER, ARG_STRING, ARG_STRING),
             newDescriptor("link", this, ARG_STRING, ARG_NUMBER, ARG_STRING, ARG_NUMBER),
             newDescriptor("delete", this, ARG_STRING, ARG_NUMBER),
@@ -91,6 +92,18 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
     }
 
 
+    private static long createProject(String name, String description) {
+        long id = -1;
+        try {
+            ProjectWrapper project = new ProjectWrapper(client, name, description);
+            id = project.getId();
+        } catch (ServiceException | AccessException | ExecutionException e) {
+            IJ.error("Could not create project: " + e.getMessage());
+        }
+        return id;
+    }
+
+
     private static long createDataset(long projectId, String name, String description) {
         long id = -1;
         try {
@@ -109,19 +122,19 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
             switch (type.toLowerCase()) {
                 case PROJECT:
                 case PROJECTS:
-                    client.deleteProject(id);
+                    client.delete(client.getProject(id));
                     break;
                 case DATASET:
                 case DATASETS:
-                    client.deleteDataset(id);
+                    client.delete(client.getDataset(id));
                     break;
                 case IMAGE:
                 case IMAGES:
-                    client.deleteImage(id);
+                    client.delete(client.getImage(id));
                     break;
                 case TAG:
                 case TAGS:
-                    client.deleteTag(id);
+                    client.delete(client.getTag(id));
                     break;
                 default:
                     IJ.error(INVALID + ": " + type + ".");
@@ -488,6 +501,11 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
                 id = ((Double) args[0]).longValue();
                 long dsId = createDataset(id, (String) args[1], (String) args[2]);
                 results = String.valueOf(dsId);
+                break;
+
+            case "createProject":
+                long projectId = createProject((String) args[0], (String) args[1]);
+                results = String.valueOf(projectId);
                 break;
 
             case "createTag":
