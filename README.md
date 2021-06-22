@@ -60,7 +60,7 @@ Ext.getImageWithROIs(imageIds[0]);
 
 ImageJ ROIs can also be saved to OMERO (the property is used to group ImageJ shapes into a single 3D/4D ROI on OMERO):
 ```
-saveROIsToImage(imageId, property);
+Ext.saveROIsToImage(imageId, property);
 ```
 
 ## License
