@@ -81,7 +81,7 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
     private static boolean connect(String host, int port, String username, String password) {
         boolean connected = false;
         try {
-            client.connect(host, port, username, password);
+            client.connect(host, port, username, password.toCharArray());
             connected = true;
         } catch (ServiceException | ExecutionException e) {
             IJ.error("Could not connect: " + e.getMessage());
