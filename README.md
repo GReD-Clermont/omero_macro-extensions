@@ -1,3 +1,5 @@
+[![Java CI with Maven](https://github.com/GReD-Clermont/imagej_omero_extensions/actions/workflows/maven.yml/badge.svg)](https://github.com/GReD-Clermont/imagej_omero_extensions/actions/workflows/maven.yml)
+
 # omero_extensions
 
 A plugin for ImageJ to provide macro extensions to access OMERO.
@@ -22,6 +24,11 @@ Then, switching group can be performed through:
 
 ```
 Ext.switchGroup(groupId);
+```
+
+When done, you can disconnect using:
+```
+Ext.disconnect()
 ```
 
 ### Listing repository objects (projects, datasets, images, tags)
@@ -126,11 +133,17 @@ Similarly, a dataset ID can be used to retrieve its images:
 images = Ext.list("images", "dataset", datasetIds[0]);
 print(images);
 imageIds = split(images,",");
-imageName = Ext.getImageName(imageIds[0]);
+imageName = Ext.getName("image", imageIds[0]);
 print(imageName);
 ```
 
-### Creating datasets and tags
+### Creating projects, datasets and tags
+
+Projects can be created with *Ext.createProject*:
+
+```
+projectId = Ext.createProject(name, description);
+```
 
 Datasets can be created with *Ext.createDataset*:
 
@@ -141,7 +154,7 @@ datasetId = Ext.createDataset(projectId, name, description);
 Tags can be created with *Ext.createTag*:
 
 ```
-datasetId = Ext.createTag(name, description);
+tagId = Ext.createTag(name, description);
 ```
 
 ### Linking objects
@@ -179,6 +192,18 @@ on OMERO):
 
 ```
 nROIS = saveROIsToImage(imageId, property);
+```
+
+### Attaching / deleting files
+
+Files can be attached to a project/dataset/image through *Ext.addFile*:
+```
+fileId = Ext.addFile('image', imageId, path);
+```
+
+They can also be deleted with *Ext.deleteFile*:
+```
+Ext.deleteFile(fileId);
 ```
 
 ## License
