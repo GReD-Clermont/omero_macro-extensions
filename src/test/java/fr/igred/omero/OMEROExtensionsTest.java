@@ -3,7 +3,6 @@ package fr.igred.omero;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -139,7 +138,6 @@ class OMEROExtensionsTest {
     }
 
 
-    @Disabled("Adding files is not working for now")
     @ParameterizedTest
     @CsvSource(delimiter = ';', value = {"project;1.0;./test1.txt",
                                          "projects;1.0;./test2.txt",

@@ -33,15 +33,12 @@ import static ij.macro.ExtensionDescriptor.newDescriptor;
 
 public class OMEROExtensions implements PlugIn, MacroExtension {
 
-    private static final Client client = new Client();
-
     private static final String PROJECT = "project";
     private static final String DATASET = "dataset";
     private static final String IMAGE   = "image";
     private static final String TAG     = "tag";
-
     private static final String INVALID = "Invalid type";
-
+    private final Client client = new Client();
     private final ExtensionDescriptor[] extensions = {
             newDescriptor("connectToOMERO", this, ARG_STRING, ARG_NUMBER, ARG_STRING, ARG_STRING),
             newDescriptor("switchGroup", this, ARG_NUMBER),
@@ -78,7 +75,7 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
     }
 
 
-    private static boolean connect(String host, int port, String username, String password) {
+    private boolean connect(String host, int port, String username, String password) {
         boolean connected = false;
         try {
             client.connect(host, port, username, password.toCharArray());
@@ -90,7 +87,7 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
     }
 
 
-    private static GenericObjectWrapper<?> getObject(String type, long id) {
+    private GenericObjectWrapper<?> getObject(String type, long id) {
         String singularType = singularType(type);
 
         GenericObjectWrapper<?> object = null;
@@ -107,7 +104,7 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
     }
 
 
-    private static GenericRepositoryObjectWrapper<?> getRepositoryObject(String type, long id) {
+    private GenericRepositoryObjectWrapper<?> getRepositoryObject(String type, long id) {
         String singularType = singularType(type);
 
         GenericRepositoryObjectWrapper<?> object = null;
@@ -132,7 +129,7 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
     }
 
 
-    private static long addFile(String type, long id, String path) {
+    private long addFile(String type, long id, String path) {
         long fileId = -1;
 
         File file = new File(path);
@@ -152,7 +149,7 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
     }
 
 
-    private static void deleteFile(long fileId) {
+    private void deleteFile(long fileId) {
         try {
             client.deleteFile(fileId);
         } catch (ServiceException | AccessException | ExecutionException | OMEROServerError e) {
@@ -164,7 +161,7 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
     }
 
 
-    private static long createTag(String name, String description) {
+    private long createTag(String name, String description) {
         long id = -1;
         try {
             TagAnnotationWrapper tag = new TagAnnotationWrapper(client, name, description);
@@ -176,7 +173,7 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
     }
 
 
-    private static long createProject(String name, String description) {
+    private long createProject(String name, String description) {
         long id = -1;
         try {
             ProjectWrapper project = new ProjectWrapper(client, name, description);
@@ -188,7 +185,7 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
     }
 
 
-    private static long createDataset(long projectId, String name, String description) {
+    private long createDataset(long projectId, String name, String description) {
         long id = -1;
         try {
             ProjectWrapper project = client.getProject(projectId);
@@ -201,7 +198,7 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
     }
 
 
-    private static void delete(String type, long id) {
+    private void delete(String type, long id) {
         GenericObjectWrapper<?> object = getObject(type, id);
         try {
             if (object != null) client.delete(object);
@@ -214,7 +211,7 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
     }
 
 
-    private static String list(String type) {
+    private String list(String type) {
         String singularType = singularType(type);
 
         String results = "";
@@ -246,7 +243,7 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
     }
 
 
-    private static String list(String type, String name) {
+    private String list(String type, String name) {
         String singularType = singularType(type);
 
         String results = "";
@@ -278,7 +275,7 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
     }
 
 
-    private static String list(String type, String parent, long id) {
+    private String list(String type, String parent, long id) {
         String singularType   = singularType(type);
         String singularParent = singularType(parent);
 
@@ -355,7 +352,7 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
     }
 
 
-    private static void link(String type1, long id1, String type2, long id2) {
+    private void link(String type1, long id1, String type2, long id2) {
         String t1 = singularType(type1);
         String t2 = singularType(type2);
 
@@ -391,7 +388,7 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
     }
 
 
-    private static String getName(String type, long id) {
+    private String getName(String type, long id) {
         String name = null;
 
         GenericObjectWrapper<?> object = getObject(type, id);
@@ -408,7 +405,7 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
     }
 
 
-    private static ImagePlus getImage(long id) {
+    private ImagePlus getImage(long id) {
         ImagePlus imp = null;
         try {
             ImageWrapper image = client.getImage(id);
@@ -421,7 +418,7 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
     }
 
 
-    private static int getROIs(long id) {
+    private int getROIs(long id) {
         List<ROIWrapper> rois = new ArrayList<>();
         try {
             ImageWrapper image = client.getImage(id);
@@ -455,7 +452,7 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
     }
 
 
-    private static int saveROIs(long id, String property) {
+    private int saveROIs(long id, String property) {
         int result = 0;
         try {
             ImageWrapper image = client.getImage(id);
