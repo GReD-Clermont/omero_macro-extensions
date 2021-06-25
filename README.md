@@ -191,7 +191,14 @@ Conversely, ImageJ ROIs can also be saved to OMERO (the property is used to grou
 on OMERO):
 
 ```
-nROIS = saveROIsToImage(imageId, property);
+nROIS = Ext.saveROIs(imageId, property);
+```
+
+### Saving images
+
+The current image can be saved (as a TIF) to a dataset in OMERO:
+```
+newImageId = Ext.importImage(datasetId);
 ```
 
 ### Attaching / deleting files
