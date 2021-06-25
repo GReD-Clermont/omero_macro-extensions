@@ -451,24 +451,12 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
 
         List<Roi> ijRois = ROIWrapper.toImageJ(rois);
 
-        int index = 0;
-        for (ROIWrapper roi : rois) {
-            List<Roi> shapes = roi.toImageJ();
-            for (Roi r : shapes) {
-                r.setProperty("INDEX", String.valueOf(index));
-                if (rois.size() < 255) {
-                    r.setGroup(index);
-                }
-            }
-            ijRois.addAll(shapes);
-            index++;
-        }
         RoiManager rm = RoiManager.getRoiManager();
         for (Roi roi : ijRois) {
             roi.setImage(imp);
             rm.addRoi(roi);
         }
-        return rm.getCount();
+        return ijRois.size();
     }
 
 
@@ -487,6 +475,8 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
                 image.saveROI(client, roi);
             }
             result = rois.size();
+            rm.reset();
+            this.getROIs(id);
         } catch (ServiceException | AccessException | ExecutionException e) {
             IJ.error("Could not save ROIs to image: " + e.getMessage());
         }
