@@ -213,6 +213,22 @@ They can also be deleted with *Ext.deleteFile*:
 Ext.deleteFile(fileId);
 ```
 
+### Attaching a table
+
+A table can be created/updated using the results with *Ext.addToTable*:
+```
+Ext.addToTable(imageId, resultsName);
+```
+If a column named ROI containing ROI IDs is present, these will be added to the table.
+Alternatively, if ROIs that were saved to OMERO are in the ROI Manager 
+and if their name appears in the labels or is in a column named ROI, they will be added too.
+
+The table can then be saved to a project/dataset/image through *Ext.saveTable* (this will clear the current table):
+```
+Ext.saveTable('image', imageId, tableName);
+
+```
+
 ## License
 
 [GPLv2+](https://choosealicense.com/licenses/gpl-2.0/)

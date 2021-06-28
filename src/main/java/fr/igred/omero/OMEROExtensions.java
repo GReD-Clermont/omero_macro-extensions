@@ -1,6 +1,7 @@
 package fr.igred.omero;
 
 
+import fr.igred.omero.annotations.TableWrapper;
 import fr.igred.omero.annotations.TagAnnotationWrapper;
 import fr.igred.omero.exception.AccessException;
 import fr.igred.omero.exception.OMEROServerError;
@@ -16,12 +17,14 @@ import ij.gui.Roi;
 import ij.macro.ExtensionDescriptor;
 import ij.macro.Functions;
 import ij.macro.MacroExtension;
+import ij.measure.ResultsTable;
 import ij.plugin.PlugIn;
 import ij.plugin.frame.RoiManager;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
@@ -37,8 +40,7 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
     private static final String TAG     = "tag";
     private static final String INVALID = "Invalid type";
 
-    private final Client client = new Client();
-
+    private final Client                client     = new Client();
     private final ExtensionDescriptor[] extensions = {
             newDescriptor("connectToOMERO", this, ARG_STRING, ARG_NUMBER, ARG_STRING, ARG_STRING),
             newDescriptor("switchGroup", this, ARG_NUMBER),
@@ -48,6 +50,8 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
             newDescriptor("createTag", this, ARG_NUMBER, ARG_STRING, ARG_STRING),
             newDescriptor("link", this, ARG_STRING, ARG_NUMBER, ARG_STRING, ARG_NUMBER),
             newDescriptor("addFile", this, ARG_STRING, ARG_NUMBER, ARG_STRING),
+            newDescriptor("addToTable", this, ARG_NUMBER + ARG_OPTIONAL, ARG_STRING + ARG_OPTIONAL),
+            newDescriptor("saveTable", this, ARG_STRING, ARG_NUMBER, ARG_STRING + ARG_OPTIONAL),
             newDescriptor("importImage", this, ARG_NUMBER),
             newDescriptor("delete", this, ARG_STRING, ARG_NUMBER),
             newDescriptor("getName", this, ARG_STRING, ARG_NUMBER),
@@ -56,6 +60,8 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
             newDescriptor("saveROIs", this, ARG_NUMBER, ARG_STRING),
             newDescriptor("disconnect", this),
             };
+
+    private TableWrapper table = null;
 
 
     private static <T extends GenericObjectWrapper<?>> String listToIDs(List<T> list) {
@@ -73,18 +79,6 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
             singular = singular.substring(0, length - 1);
         }
         return singular;
-    }
-
-
-    public boolean connect(String host, int port, String username, String password) {
-        boolean connected = false;
-        try {
-            client.connect(host, port, username, password.toCharArray());
-            connected = true;
-        } catch (ServiceException | ExecutionException e) {
-            IJ.error("Could not connect: " + e.getMessage());
-        }
-        return connected;
     }
 
 
@@ -127,6 +121,18 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
             IJ.error("Could not retrieve object: " + e.getMessage());
         }
         return object;
+    }
+
+
+    public boolean connect(String host, int port, String username, String password) {
+        boolean connected = false;
+        try {
+            client.connect(host, port, username, password.toCharArray());
+            connected = true;
+        } catch (ServiceException | ExecutionException e) {
+            IJ.error("Could not connect: " + e.getMessage());
+        }
+        return connected;
     }
 
 
@@ -177,6 +183,47 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
         } catch (InterruptedException e) {
             IJ.error(e.getMessage());
             Thread.currentThread().interrupt();
+        }
+    }
+
+
+    public void addToTable(Long imageId, String name) {
+        ResultsTable rt;
+        if (name == null) rt = ResultsTable.getResultsTable();
+        else rt = ResultsTable.getResultsTable(name);
+        RoiManager rm     = RoiManager.getRoiManager();
+        List<Roi>  ijRois = Arrays.asList(rm.getRoisAsArray());
+        try {
+            if (table == null) {
+                table = new TableWrapper(client, rt, imageId, ijRois, ROIWrapper.IJ_PROPERTY);
+            } else {
+                table.addRows(client, rt, imageId, ijRois, ROIWrapper.IJ_PROPERTY);
+            }
+        } catch (ExecutionException | ServiceException | AccessException e) {
+            IJ.error("Could not add results to table: " + e.getMessage());
+        }
+    }
+
+
+    public void saveTable(String type, long id, String name) {
+        GenericRepositoryObjectWrapper<?> object = getRepositoryObject(type, id);
+        if (object != null) {
+            if (table != null) {
+                String timestamp = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date());
+                String newName;
+                if (name == null || name.equals("")) newName = timestamp + "_" + table.getName();
+                else newName = timestamp + "_" + name;
+                table.setName(newName);
+                try {
+                    object.addTable(client, table);
+                    // Reset table
+                    table = null;
+                } catch (ExecutionException | ServiceException | AccessException e) {
+                    IJ.error("Could not save table: " + e.getMessage());
+                }
+            } else {
+                throw new IllegalAccessError("Table is empty!");
+            }
         }
     }
 
@@ -552,6 +599,20 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
                 results = String.valueOf(tagId);
                 break;
 
+            case "addToTable":
+                Long imageId;
+                if (args[0] != null) imageId = ((Double) args[0]).longValue();
+                else imageId = null;
+                String resultsName = (String) args[1];
+                addToTable(imageId, resultsName);
+                break;
+
+            case "saveTable":
+                type = (String) args[0];
+                id = ((Double) args[1]).longValue();
+                saveTable(type, id, (String) args[2]);
+                break;
+
             case "delete":
                 type = (String) args[0];
                 id = ((Double) args[1]).longValue();
@@ -598,9 +659,9 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
                 break;
 
             case "saveROIs":
-                long imageId = ((Double) args[0]).longValue();
+                id = ((Double) args[0]).longValue();
                 String property = ((String) args[1]);
-                int nROIs = saveROIs(imageId, property);
+                int nROIs = saveROIs(id, property);
                 results = String.valueOf(nROIs);
                 break;
 
