@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 import static ij.macro.ExtensionDescriptor.newDescriptor;
 
 
-public class OMEROExtensions implements PlugIn, MacroExtension {
+public class OMEROExtension implements PlugIn, MacroExtension {
 
     private static final String PROJECT = "project";
     private static final String DATASET = "dataset";
@@ -477,7 +477,6 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
         try {
             ImageWrapper image = client.getImage(id);
             imp = image.toImagePlus(client);
-            imp.show();
         } catch (ServiceException | AccessException | ExecutionException e) {
             IJ.error("Could not retrieve image: " + e.getMessage());
         }
@@ -498,7 +497,7 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
 
         List<Roi> ijRois = ROIWrapper.toImageJ(rois);
 
-        RoiManager rm = RoiManager.getRoiManager();
+        RoiManager rm = RoiManager.getInstance2();
         for (Roi roi : ijRois) {
             roi.setImage(imp);
             rm.addRoi(roi);
@@ -512,7 +511,7 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
         try {
             ImageWrapper image = client.getImage(id);
 
-            RoiManager rm = RoiManager.getRoiManager();
+            RoiManager rm = RoiManager.getInstance2();
 
             List<Roi> ijRois = Arrays.asList(rm.getRoisAsArray());
 
@@ -650,7 +649,10 @@ public class OMEROExtensions implements PlugIn, MacroExtension {
 
             case "getImage":
                 ImagePlus imp = getImage(((Double) args[0]).longValue());
-                if (imp != null) results = String.valueOf(imp.getID());
+                if (imp != null) {
+                    imp.show();
+                    results = String.valueOf(imp.getID());
+                }
                 break;
 
             case "getROIs":
