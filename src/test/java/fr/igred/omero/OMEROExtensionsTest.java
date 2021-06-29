@@ -1,8 +1,11 @@
 package fr.igred.omero;
 
 
+import fr.igred.omero.annotations.TableWrapper;
+import ij.measure.ResultsTable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -11,6 +14,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -167,6 +171,29 @@ class OMEROExtensionsTest {
         double   fileId = Double.parseDouble(result);
         Object[] args2  = {fileId};
         ext.handleExtension("deleteFile", args2);
+    }
+
+
+    @Test
+    @Disabled("Requires X11")
+    void testTable() throws Exception {
+        ResultsTable rt = ResultsTable.getResultsTable();
+        rt.incrementCounter();
+        rt.setLabel("Test", 0);
+        rt.setValue("Size", 0, 25.0);
+
+        Object[] args = {1.0d, "image", "test"};
+        ext.handleExtension("addToTable", args);
+
+        Object[] args2 = {"dataset", 1.0d};
+        ext.handleExtension("saveTable", args2);
+
+        Client client = new Client();
+        client.connect("omero", 4064, "testUser", "password".toCharArray());
+        List<TableWrapper> tables = client.getImage(1L).getTables(client);
+        client.disconnect();
+        assertEquals(1, tables.size());
+        assertEquals(1, tables.get(0).getRowCount());
     }
 
 }
