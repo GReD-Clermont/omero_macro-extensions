@@ -4,9 +4,9 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <artifactId>pom-scijava</artifactId>
+        <artifactId>pom-scijava-base</artifactId>
         <groupId>org.scijava</groupId>
-        <version>30.0.0</version>
+        <version>12.0.0</version>
     </parent>
 
     <groupId>fr.igred</groupId>
@@ -89,7 +89,21 @@
         <maven.compiler.target>8</maven.compiler.target>
         <license.licenseName>gpl_v2</license.licenseName>
         <license.copyrightOwners>GReD</license.copyrightOwners>
+        <allowedDuplicateClasses>com.esotericsoftware.kryo.*,com.esotericsoftware.minlog.*,com.esotericsoftware.reflectasm.*</allowedDuplicateClasses>
+        <soc.version>5.8.0-SNAPSHOT</soc.version>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>fr.igred</groupId>
+                <artifactId>simple-omero-client</artifactId>
+                <version>${soc.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
         <dependency>
@@ -110,7 +124,7 @@
         <dependency>
             <groupId>fr.igred</groupId>
             <artifactId>simple-omero-client</artifactId>
-            <version>5.8.0-SNAPSHOT</version>
+            <version>${soc.version}</version>
         </dependency>
     </dependencies>
 
@@ -127,16 +141,6 @@
 
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.0.0-M5</version>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-dependency-plugin</artifactId>
-                <version>3.1.2</version>
-            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
@@ -158,7 +162,6 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.6</version>
                 <executions>
                     <execution>
                         <goals>
@@ -176,34 +179,9 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-site-plugin</artifactId>
-                <version>3.7.1</version>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-project-info-reports-plugin</artifactId>
-                <version>3.0.0</version>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <version>3.2.1</version>
-                <executions>
-                    <execution>
-                        <id>attach-sources</id>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.2.0</version>
                 <configuration>
                     <source>8</source>
-                    <detectJavaApiLink>false</detectJavaApiLink>
                     <additionalJOption>--no-module-directories</additionalJOption>
                 </configuration>
                 <executions>
@@ -223,7 +201,10 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.2.0</version>
+                <configuration>
+                    <source>8</source>
+                    <additionalJOption>--no-module-directories</additionalJOption>
+                </configuration>
             </plugin>
         </plugins>
     </reporting>
