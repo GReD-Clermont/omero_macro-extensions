@@ -123,7 +123,7 @@ class OMEROExtensionTest {
 
     @Test
     void testCreateDataset() {
-        Object[] args   = {2.0d, "toDelete", "toBeDeleted"};
+        Object[] args   = {"toDelete", "toBeDeleted", null};
         String   result = ext.handleExtension("createDataset", args);
         Double   id     = Double.parseDouble(result);
         Object[] args2  = {"dataset", id};

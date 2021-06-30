@@ -48,9 +48,9 @@ public class OMEROExtension implements PlugIn, MacroExtension {
             newDescriptor("connectToOMERO", this, ARG_STRING, ARG_NUMBER, ARG_STRING, ARG_STRING),
             newDescriptor("switchGroup", this, ARG_NUMBER),
             newDescriptor("list", this, ARG_STRING, ARG_STRING + ARG_OPTIONAL, ARG_NUMBER + ARG_OPTIONAL),
-            newDescriptor("createDataset", this, ARG_NUMBER, ARG_STRING, ARG_STRING),
+            newDescriptor("createDataset", this, ARG_STRING, ARG_STRING, ARG_NUMBER + ARG_OPTIONAL),
             newDescriptor("createProject", this, ARG_NUMBER, ARG_STRING, ARG_STRING),
-            newDescriptor("createTag", this, ARG_NUMBER, ARG_STRING, ARG_STRING),
+            newDescriptor("createTag", this, ARG_STRING, ARG_STRING),
             newDescriptor("link", this, ARG_STRING, ARG_NUMBER, ARG_STRING, ARG_NUMBER),
             newDescriptor("addFile", this, ARG_STRING, ARG_NUMBER, ARG_STRING),
             newDescriptor("addToTable", this, ARG_STRING, ARG_STRING + ARG_OPTIONAL, ARG_NUMBER + ARG_OPTIONAL),
@@ -58,6 +58,7 @@ public class OMEROExtension implements PlugIn, MacroExtension {
             newDescriptor("saveTableAsTXT", this, ARG_STRING, ARG_STRING),
             newDescriptor("clearTable", this, ARG_STRING),
             newDescriptor("importImage", this, ARG_NUMBER, ARG_STRING + ARG_OPTIONAL),
+            newDescriptor("downloadImage", this, ARG_NUMBER, ARG_STRING),
             newDescriptor("delete", this, ARG_STRING, ARG_NUMBER),
             newDescriptor("getName", this, ARG_STRING, ARG_NUMBER),
             newDescriptor("getImage", this, ARG_NUMBER),
@@ -138,6 +139,15 @@ public class OMEROExtension implements PlugIn, MacroExtension {
             IJ.error("Could not connect: " + e.getMessage());
         }
         return connected;
+    }
+
+
+    public void downloadImage(long imageId, String path) {
+        try {
+            client.getImage(imageId).download(client, path);
+        } catch (ServiceException | AccessException | OMEROServerError e) {
+            IJ.error("Could not download image: " + e.getMessage());
+        }
     }
 
 
@@ -295,11 +305,16 @@ public class OMEROExtension implements PlugIn, MacroExtension {
     }
 
 
-    public long createDataset(long projectId, String name, String description) {
+    public long createDataset(String name, String description, Long projectId) {
         long id = -1;
         try {
-            ProjectWrapper project = client.getProject(projectId);
-            DatasetWrapper dataset = project.addDataset(client, name, description);
+            DatasetWrapper dataset;
+            if(projectId != null) {
+                dataset = client.getProject(projectId).addDataset(client, name, description);
+            } else {
+                dataset = new DatasetWrapper(name, description);
+                dataset.saveAndUpdate(client);
+            }
             id = dataset.getId();
         } catch (ServiceException | AccessException | ExecutionException e) {
             IJ.error("Could not create dataset: " + e.getMessage());
@@ -589,9 +604,10 @@ public class OMEROExtension implements PlugIn, MacroExtension {
 
 
     public String handleExtension(String name, Object[] args) {
+        long   id;
         String type;
         String tableName;
-        long   id;
+        String path;
         String results = null;
         switch (name) {
             case "connectToOMERO":
@@ -611,8 +627,14 @@ public class OMEROExtension implements PlugIn, MacroExtension {
 
             case "importImage":
                 long datasetId = ((Double) args[0]).longValue();
-                String path = ((String) args[1]);
+                path = ((String) args[1]);
                 results = importImage(datasetId, path);
+                break;
+
+            case "downloadImage":
+                id = ((Double) args[0]).longValue();
+                path = ((String) args[1]);
+                downloadImage(id, path);
                 break;
 
             case "addFile":
@@ -628,14 +650,15 @@ public class OMEROExtension implements PlugIn, MacroExtension {
                 break;
 
             case "createDataset":
-                id = ((Double) args[0]).longValue();
-                long dsId = createDataset(id, (String) args[1], (String) args[2]);
+                Long projectId = null;
+                if(args[2] != null) projectId = ((Double) args[2]).longValue();
+                long dsId = createDataset((String) args[0], (String) args[1], projectId);
                 results = String.valueOf(dsId);
                 break;
 
             case "createProject":
-                long projectId = createProject((String) args[0], (String) args[1]);
-                results = String.valueOf(projectId);
+                id = createProject((String) args[0], (String) args[1]);
+                results = String.valueOf(id);
                 break;
 
             case "createTag":
