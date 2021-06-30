@@ -188,15 +188,15 @@ class OMEROExtensionTest {
     @Test
     void testImportImage() throws IOException {
         String path = "./8bit-unsigned&pixelType=uint8&sizeZ=3&sizeC=5&sizeT=7&sizeX=512&sizeY=512.fake";
-        File f = new File(path);
+        File   f    = new File(path);
         if (!f.createNewFile()) {
             System.err.println("\"" + f.getCanonicalPath() + "\" could not be created.");
             fail();
         }
 
-        Object[] args1 = {2.0d, path};
-        String listIds = ext.handleExtension("importImage", args1);
-        long[] ids = Arrays.stream(listIds.split(",")).mapToLong(Long::parseLong).toArray();
+        Object[] args1   = {2.0d, path};
+        String   listIds = ext.handleExtension("importImage", args1);
+        long[]   ids     = Arrays.stream(listIds.split(",")).mapToLong(Long::parseLong).toArray();
         assertNotNull(ids);
         assertEquals(1, ids.length);
 
@@ -208,18 +208,19 @@ class OMEROExtensionTest {
         assertEquals("", listIds);
     }
 
+
     @Test
     @Disabled("Requires X11")
     void testTable() throws Exception {
-        ResultsTable rt = ResultsTable.getResultsTable();
+        ResultsTable rt = new ResultsTable();
         rt.incrementCounter();
-        rt.setLabel("Test", 0);
+        rt.setLabel("test", 0);
         rt.setValue("Size", 0, 25.0);
 
-        Object[] args = {1.0d, "image", "test"};
+        Object[] args = {"test_table", "test", 1.0d};
         ext.handleExtension("addToTable", args);
 
-        Object[] args2 = {"dataset", 1.0d};
+        Object[] args2 = {"test_table", "dataset", 1.0d};
         ext.handleExtension("saveTable", args2);
 
         Client client = new Client();

@@ -217,15 +217,21 @@ Ext.deleteFile(fileId);
 
 A table can be created/updated using the results with *Ext.addToTable*:
 ```
-Ext.addToTable(tableName, imageId, resultsName);
+Ext.addToTable(tableName, resultsName, imageId);
 ```
 If a column named ROI containing ROI IDs is present, these will be added to the table.
 Alternatively, if ROIs that were saved to OMERO are in the ROI Manager 
 and if their name appears in the labels or is in a column named ROI, they will be added too.
 
-The table can then be saved to a project/dataset/image through *Ext.saveTable* (this will clear the current table):
+The table can then be saved to a project/dataset/image through *Ext.saveTable*:
 ```
-Ext.saveTable('image', imageId, tableName);
+Ext.saveTable(tableName, 'dataset', datasetId);
+
+```
+
+It can then be saved to a tab-separated text file through *Ext.saveTableAsTXT*:
+```
+Ext.saveTableAsTXT(tableName, pathToTXT);
 
 ```
 

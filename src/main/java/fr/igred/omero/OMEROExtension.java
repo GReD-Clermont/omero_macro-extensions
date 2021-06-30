@@ -20,7 +20,6 @@ import ij.macro.MacroExtension;
 import ij.measure.ResultsTable;
 import ij.plugin.PlugIn;
 import ij.plugin.frame.RoiManager;
-import omero.gateway.model.DataObject;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -54,8 +53,10 @@ public class OMEROExtension implements PlugIn, MacroExtension {
             newDescriptor("createTag", this, ARG_NUMBER, ARG_STRING, ARG_STRING),
             newDescriptor("link", this, ARG_STRING, ARG_NUMBER, ARG_STRING, ARG_NUMBER),
             newDescriptor("addFile", this, ARG_STRING, ARG_NUMBER, ARG_STRING),
-            newDescriptor("addToTable", this, ARG_STRING, ARG_NUMBER + ARG_OPTIONAL, ARG_STRING + ARG_OPTIONAL),
-            newDescriptor("saveTable", this, ARG_STRING, ARG_NUMBER, ARG_STRING + ARG_OPTIONAL),
+            newDescriptor("addToTable", this, ARG_STRING, ARG_STRING + ARG_OPTIONAL, ARG_NUMBER + ARG_OPTIONAL),
+            newDescriptor("saveTable", this, ARG_STRING, ARG_STRING, ARG_NUMBER),
+            newDescriptor("saveTableAsTXT", this, ARG_STRING, ARG_STRING),
+            newDescriptor("clearTable", this, ARG_STRING),
             newDescriptor("importImage", this, ARG_NUMBER, ARG_STRING + ARG_OPTIONAL),
             newDescriptor("delete", this, ARG_STRING, ARG_NUMBER),
             newDescriptor("getName", this, ARG_STRING, ARG_NUMBER),
@@ -193,7 +194,7 @@ public class OMEROExtension implements PlugIn, MacroExtension {
     }
 
 
-    public void addToTable(Long imageId, String tableName, String resultsName) {
+    public void addToTable(String tableName, String resultsName, Long imageId) {
         ResultsTable rt;
         if (tableName == null) rt = ResultsTable.getResultsTable();
         else rt = ResultsTable.getResultsTable(resultsName);
@@ -225,7 +226,7 @@ public class OMEROExtension implements PlugIn, MacroExtension {
         File          f        = new File(path);
         try (PrintWriter stream = new PrintWriter(f)) {
             for (int i = 0; i < nColumns; i++) {
-                sb.append(table.getColumns()[i].getName());
+                sb.append(table.getColumnName(i));
                 if (i != (nColumns - 1)) {
                     sb.append("\t");
                 }
@@ -234,11 +235,7 @@ public class OMEROExtension implements PlugIn, MacroExtension {
             for (int i = 0; i < table.getRowCount(); i++) {
                 for (int j = 0; j < nColumns; j++) {
                     Object value = data[j][i];
-                    if (value instanceof DataObject) {
-                        sb.append(((DataObject) value).getId());
-                    } else {
-                        sb.append(value);
-                    }
+                    sb.append(value);
                     if (i != table.getRowCount() - 1) {
                         sb.append("\t");
                     }
@@ -252,7 +249,7 @@ public class OMEROExtension implements PlugIn, MacroExtension {
     }
 
 
-    public void saveTable(String type, long id, String name) {
+    public void saveTable(String name, String type, long id) {
         GenericRepositoryObjectWrapper<?> object = getRepositoryObject(type, id);
         if (object != null) {
             TableWrapper table = tables.get(name);
@@ -264,7 +261,6 @@ public class OMEROExtension implements PlugIn, MacroExtension {
                 table.setName(newName);
                 try {
                     object.addTable(client, table);
-                    tables.remove(name);
                 } catch (ExecutionException | ServiceException | AccessException e) {
                     IJ.error("Could not save table: " + e.getMessage());
                 }
@@ -594,6 +590,7 @@ public class OMEROExtension implements PlugIn, MacroExtension {
 
     public String handleExtension(String name, Object[] args) {
         String type;
+        String tableName;
         long   id;
         String results = null;
         switch (name) {
@@ -647,22 +644,27 @@ public class OMEROExtension implements PlugIn, MacroExtension {
                 break;
 
             case "addToTable":
-                String tableName = (String) args[0];
-                Long imageId;
-                if (args[1] != null) imageId = ((Double) args[1]).longValue();
-                else imageId = null;
-                String resultsName = (String) args[2];
-                addToTable(imageId, tableName, resultsName);
+                tableName = (String) args[0];
+                String resultsName = (String) args[1];
+                Long imageId = null;
+                if (args[2] != null) imageId = ((Double) args[2]).longValue();
+                addToTable(tableName, resultsName, imageId);
                 break;
 
-            case "saveTableAsCSV":
+            case "saveTableAsTXT":
                 saveTableAsTXT((String) args[0], (String) args[1]);
                 break;
 
             case "saveTable":
-                type = (String) args[0];
-                id = ((Double) args[1]).longValue();
-                saveTable(type, id, (String) args[2]);
+                tableName = (String) args[0];
+                type = (String) args[1];
+                id = ((Double) args[2]).longValue();
+                saveTable(tableName, type, id);
+                break;
+
+            case "clearTable":
+                tableName = (String) args[0];
+                tables.remove(tableName);
                 break;
 
             case "delete":
