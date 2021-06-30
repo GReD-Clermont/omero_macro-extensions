@@ -217,7 +217,7 @@ Ext.deleteFile(fileId);
 
 A table can be created/updated using the results with *Ext.addToTable*:
 ```
-Ext.addToTable(imageId, resultsName);
+Ext.addToTable(tableName, imageId, resultsName);
 ```
 If a column named ROI containing ROI IDs is present, these will be added to the table.
 Alternatively, if ROIs that were saved to OMERO are in the ROI Manager 

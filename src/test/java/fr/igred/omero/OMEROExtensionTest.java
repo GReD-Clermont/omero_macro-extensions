@@ -2,6 +2,7 @@ package fr.igred.omero;
 
 
 import fr.igred.omero.annotations.TableWrapper;
+import ij.ImagePlus;
 import ij.measure.ResultsTable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,15 +13,17 @@ import org.junit.jupiter.params.provider.CsvSource;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 
-class OMEROExtensionsTest {
+class OMEROExtensionTest {
 
     private OMEROExtension ext;
 
@@ -173,6 +176,37 @@ class OMEROExtensionsTest {
         ext.handleExtension("deleteFile", args2);
     }
 
+
+    @Test
+    void testGetImage() {
+        ImagePlus imp = ext.getImage(1L);
+        assertEquals(512, imp.getWidth());
+        assertEquals(512, imp.getHeight());
+    }
+
+
+    @Test
+    void testImportImage() throws IOException {
+        String path = "./8bit-unsigned&pixelType=uint8&sizeZ=3&sizeC=5&sizeT=7&sizeX=512&sizeY=512.fake";
+        File f = new File(path);
+        if (!f.createNewFile()) {
+            System.err.println("\"" + f.getCanonicalPath() + "\" could not be created.");
+            fail();
+        }
+
+        Object[] args1 = {2.0d, path};
+        String listIds = ext.handleExtension("importImage", args1);
+        long[] ids = Arrays.stream(listIds.split(",")).mapToLong(Long::parseLong).toArray();
+        assertNotNull(ids);
+        assertEquals(1, ids.length);
+
+        Object[] args2 = {"Image", (double) ids[0]};
+        ext.handleExtension("delete", args2);
+
+        Object[] args3 = {"image", "dataset", 2.0D};
+        listIds = ext.handleExtension("list", args3);
+        assertEquals("", listIds);
+    }
 
     @Test
     @Disabled("Requires X11")

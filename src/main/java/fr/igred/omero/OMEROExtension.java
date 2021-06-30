@@ -20,9 +20,12 @@ import ij.macro.MacroExtension;
 import ij.measure.ResultsTable;
 import ij.plugin.PlugIn;
 import ij.plugin.frame.RoiManager;
+import omero.gateway.model.DataObject;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -40,7 +43,8 @@ public class OMEROExtension implements PlugIn, MacroExtension {
     private static final String TAG     = "tag";
     private static final String INVALID = "Invalid type";
 
-    private final Client                client     = new Client();
+    private final Client client = new Client();
+
     private final ExtensionDescriptor[] extensions = {
             newDescriptor("connectToOMERO", this, ARG_STRING, ARG_NUMBER, ARG_STRING, ARG_STRING),
             newDescriptor("switchGroup", this, ARG_NUMBER),
@@ -50,9 +54,9 @@ public class OMEROExtension implements PlugIn, MacroExtension {
             newDescriptor("createTag", this, ARG_NUMBER, ARG_STRING, ARG_STRING),
             newDescriptor("link", this, ARG_STRING, ARG_NUMBER, ARG_STRING, ARG_NUMBER),
             newDescriptor("addFile", this, ARG_STRING, ARG_NUMBER, ARG_STRING),
-            newDescriptor("addToTable", this, ARG_NUMBER + ARG_OPTIONAL, ARG_STRING + ARG_OPTIONAL),
+            newDescriptor("addToTable", this, ARG_STRING, ARG_NUMBER + ARG_OPTIONAL, ARG_STRING + ARG_OPTIONAL),
             newDescriptor("saveTable", this, ARG_STRING, ARG_NUMBER, ARG_STRING + ARG_OPTIONAL),
-            newDescriptor("importImage", this, ARG_NUMBER),
+            newDescriptor("importImage", this, ARG_NUMBER, ARG_STRING + ARG_OPTIONAL),
             newDescriptor("delete", this, ARG_STRING, ARG_NUMBER),
             newDescriptor("getName", this, ARG_STRING, ARG_NUMBER),
             newDescriptor("getImage", this, ARG_NUMBER),
@@ -61,7 +65,7 @@ public class OMEROExtension implements PlugIn, MacroExtension {
             newDescriptor("disconnect", this),
             };
 
-    private TableWrapper table = null;
+    private final Map<String, TableWrapper> tables = new HashMap<>(1);
 
 
     private static <T extends GenericObjectWrapper<?>> String listToIDs(List<T> list) {
@@ -136,18 +140,20 @@ public class OMEROExtension implements PlugIn, MacroExtension {
     }
 
 
-    public String importImage(long datasetId) {
-        ImagePlus imp      = IJ.getImage();
-        String    tempPath = IJ.getDir("temp") + imp.getTitle() + ".tif";
-        IJ.save(imp, tempPath);
+    public String importImage(long datasetId, String path) {
+        if (path == null) {
+            ImagePlus imp = IJ.getImage();
+            path = IJ.getDir("temp") + imp.getTitle() + ".tif";
+            IJ.save(imp, path);
+        }
         List<Long> imageIds = new ArrayList<>();
         try {
-            imageIds = client.getDataset(datasetId).importImage(client, tempPath);
+            imageIds = client.getDataset(datasetId).importImage(client, path);
         } catch (Exception e) {
             IJ.error("Could not import image: " + e.getMessage());
         }
         try {
-            Files.deleteIfExists(new File(tempPath).toPath());
+            Files.deleteIfExists(new File(path).toPath());
         } catch (IOException e) {
             IJ.error("Could not delete temp image: " + e.getMessage());
         }
@@ -187,15 +193,21 @@ public class OMEROExtension implements PlugIn, MacroExtension {
     }
 
 
-    public void addToTable(Long imageId, String name) {
+    public void addToTable(Long imageId, String tableName, String resultsName) {
         ResultsTable rt;
-        if (name == null) rt = ResultsTable.getResultsTable();
-        else rt = ResultsTable.getResultsTable(name);
+        if (tableName == null) rt = ResultsTable.getResultsTable();
+        else rt = ResultsTable.getResultsTable(resultsName);
+
         RoiManager rm     = RoiManager.getRoiManager();
         List<Roi>  ijRois = Arrays.asList(rm.getRoisAsArray());
+
+        TableWrapper table = tables.get(tableName);
+
         try {
             if (table == null) {
                 table = new TableWrapper(client, rt, imageId, ijRois, ROIWrapper.IJ_PROPERTY);
+                table.setName(tableName);
+                tables.put(tableName, table);
             } else {
                 table.addRows(client, rt, imageId, ijRois, ROIWrapper.IJ_PROPERTY);
             }
@@ -205,9 +217,45 @@ public class OMEROExtension implements PlugIn, MacroExtension {
     }
 
 
+    public void saveTableAsTXT(String tableName, String path) {
+        TableWrapper  table    = tables.get(tableName);
+        Object[][]    data     = table.getData();
+        int           nColumns = table.getColumnCount();
+        StringBuilder sb       = new StringBuilder();
+        File          f        = new File(path);
+        try (PrintWriter stream = new PrintWriter(f)) {
+            for (int i = 0; i < nColumns; i++) {
+                sb.append(table.getColumns()[i].getName());
+                if (i != (nColumns - 1)) {
+                    sb.append("\t");
+                }
+            }
+            sb.append("\n");
+            for (int i = 0; i < table.getRowCount(); i++) {
+                for (int j = 0; j < nColumns; j++) {
+                    Object value = data[j][i];
+                    if (value instanceof DataObject) {
+                        sb.append(((DataObject) value).getId());
+                    } else {
+                        sb.append(value);
+                    }
+                    if (i != table.getRowCount() - 1) {
+                        sb.append("\t");
+                    }
+                }
+                sb.append("\n");
+            }
+            stream.write(sb.toString());
+        } catch (FileNotFoundException e) {
+            IJ.error("Could not create table file: ", e.getMessage());
+        }
+    }
+
+
     public void saveTable(String type, long id, String name) {
         GenericRepositoryObjectWrapper<?> object = getRepositoryObject(type, id);
         if (object != null) {
+            TableWrapper table = tables.get(name);
             if (table != null) {
                 String timestamp = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date());
                 String newName;
@@ -216,8 +264,7 @@ public class OMEROExtension implements PlugIn, MacroExtension {
                 table.setName(newName);
                 try {
                     object.addTable(client, table);
-                    // Reset table
-                    table = null;
+                    tables.remove(name);
                 } catch (ExecutionException | ServiceException | AccessException e) {
                     IJ.error("Could not save table: " + e.getMessage());
                 }
@@ -567,7 +614,8 @@ public class OMEROExtension implements PlugIn, MacroExtension {
 
             case "importImage":
                 long datasetId = ((Double) args[0]).longValue();
-                results = importImage(datasetId);
+                String path = ((String) args[1]);
+                results = importImage(datasetId, path);
                 break;
 
             case "addFile":
@@ -599,11 +647,16 @@ public class OMEROExtension implements PlugIn, MacroExtension {
                 break;
 
             case "addToTable":
+                String tableName = (String) args[0];
                 Long imageId;
-                if (args[0] != null) imageId = ((Double) args[0]).longValue();
+                if (args[1] != null) imageId = ((Double) args[1]).longValue();
                 else imageId = null;
-                String resultsName = (String) args[1];
-                addToTable(imageId, resultsName);
+                String resultsName = (String) args[2];
+                addToTable(imageId, tableName, resultsName);
+                break;
+
+            case "saveTableAsCSV":
+                saveTableAsTXT((String) args[0], (String) args[1]);
                 break;
 
             case "saveTable":
