@@ -142,12 +142,14 @@ public class OMEROExtension implements PlugIn, MacroExtension {
     }
 
 
-    public void downloadImage(long imageId, String path) {
+    public String downloadImage(long imageId, String path) {
+        List<File> files = new ArrayList<>();
         try {
-            client.getImage(imageId).download(client, path);
+            files = client.getImage(imageId).download(client, path);
         } catch (ServiceException | AccessException | OMEROServerError e) {
             IJ.error("Could not download image: " + e.getMessage());
         }
+        return files.stream().map(File::toString).collect(Collectors.joining(","));
     }
 
 
@@ -634,7 +636,7 @@ public class OMEROExtension implements PlugIn, MacroExtension {
             case "downloadImage":
                 id = ((Double) args[0]).longValue();
                 path = ((String) args[1]);
-                downloadImage(id, path);
+                results = downloadImage(id, path);
                 break;
 
             case "addFile":
@@ -652,8 +654,8 @@ public class OMEROExtension implements PlugIn, MacroExtension {
             case "createDataset":
                 Long projectId = null;
                 if(args[2] != null) projectId = ((Double) args[2]).longValue();
-                long dsId = createDataset((String) args[0], (String) args[1], projectId);
-                results = String.valueOf(dsId);
+                id = createDataset((String) args[0], (String) args[1], projectId);
+                results = String.valueOf(id);
                 break;
 
             case "createProject":
