@@ -613,6 +613,12 @@ public class OMEROExtension implements PlugIn, MacroExtension {
     }
 
 
+    public void disconnect() {
+        if(switched != null) endSudo();
+        client.disconnect();
+    }
+
+
     @Override
     public void run(String arg) {
         if (!IJ.macroRunning()) {
@@ -779,7 +785,7 @@ public class OMEROExtension implements PlugIn, MacroExtension {
                 break;
 
             case "disconnect":
-                client.disconnect();
+                disconnect();
                 break;
 
             default:
