@@ -1,3 +1,18 @@
+/*
+ *  Copyright (C) 2021 GReD
+ *
+ * This program is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License as published by the Free Software
+ * Foundation; either version 2 of the License, or (at your option) any later
+ * version.
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License along with
+ * this program; if not, write to the Free Software Foundation, Inc., 51 Franklin
+ * Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ */
+
 package fr.igred.omero;
 
 
@@ -219,12 +234,12 @@ class OMEROExtensionTest {
         Object[] args2 = {"testUser"};
         ext.handleExtension("sudo", args2);
 
-        Object[] args3   = {"Project tag", "tag attached to a project"};
+        Object[] args3 = {"Project tag", "tag attached to a project"};
 
-        String   result = ext.handleExtension("createTag", args3);
-        Double   id     = Double.parseDouble(result);
+        String result = ext.handleExtension("createTag", args3);
+        Double id     = Double.parseDouble(result);
 
-        Object[] args4  = {"tag", id, "project", 2.0};
+        Object[] args4 = {"tag", id, "project", 2.0};
 
         ext.handleExtension("link", args4);
         Object[] args5 = {"tag", id};
