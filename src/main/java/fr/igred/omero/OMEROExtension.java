@@ -42,8 +42,6 @@ public class OMEROExtension implements PlugIn, MacroExtension {
     private static final String TAG     = "tag";
     private static final String INVALID = "Invalid type";
 
-    private final Client client = new Client();
-
     private final ExtensionDescriptor[] extensions = {
             newDescriptor("connectToOMERO", this, ARG_STRING, ARG_NUMBER, ARG_STRING, ARG_STRING),
             newDescriptor("switchGroup", this, ARG_NUMBER),
@@ -64,10 +62,15 @@ public class OMEROExtension implements PlugIn, MacroExtension {
             newDescriptor("getImage", this, ARG_NUMBER),
             newDescriptor("getROIs", this, ARG_NUMBER),
             newDescriptor("saveROIs", this, ARG_NUMBER, ARG_STRING),
+            newDescriptor("sudo", this, ARG_STRING),
+            newDescriptor("endSudo", this),
             newDescriptor("disconnect", this),
             };
 
     private final Map<String, TableWrapper> tables = new HashMap<>(1);
+
+    private Client client = new Client();
+    private Client switched;
 
 
     private static <T extends GenericObjectWrapper<?>> String listToIDs(List<T> list) {
@@ -311,7 +314,7 @@ public class OMEROExtension implements PlugIn, MacroExtension {
         long id = -1;
         try {
             DatasetWrapper dataset;
-            if(projectId != null) {
+            if (projectId != null) {
                 dataset = client.getProject(projectId).addDataset(client, name, description);
             } else {
                 dataset = new DatasetWrapper(name, description);
@@ -476,6 +479,26 @@ public class OMEROExtension implements PlugIn, MacroExtension {
             IJ.error("Could not retrieve " + type + " in " + parent + ": " + e.getMessage());
         }
         return results;
+    }
+
+
+    public void sudo(String user) {
+        switched = client;
+        try {
+            client = switched.sudoGetUser(user);
+        } catch (ServiceException | AccessException | ExecutionException e) {
+            IJ.error("Could not switch user: " + e.getMessage());
+        }
+    }
+
+
+    public void endSudo() {
+        if(switched != null) {
+            client = switched;
+            switched = null;
+        } else {
+            IJ.error("No sudo has been used before.");
+        }
     }
 
 
@@ -653,7 +676,7 @@ public class OMEROExtension implements PlugIn, MacroExtension {
 
             case "createDataset":
                 Long projectId = null;
-                if(args[2] != null) projectId = ((Double) args[2]).longValue();
+                if (args[2] != null) projectId = ((Double) args[2]).longValue();
                 id = createDataset((String) args[0], (String) args[1], projectId);
                 results = String.valueOf(id);
                 break;
@@ -745,6 +768,14 @@ public class OMEROExtension implements PlugIn, MacroExtension {
                 String property = ((String) args[1]);
                 int nROIs = saveROIs(id, property);
                 results = String.valueOf(nROIs);
+                break;
+
+            case "sudo":
+                sudo((String) args[0]);
+                break;
+
+            case "endSudo":
+                endSudo();
                 break;
 
             case "disconnect":

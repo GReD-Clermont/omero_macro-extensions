@@ -210,6 +210,33 @@ class OMEROExtensionTest {
 
 
     @Test
+    void testSudo() {
+        ext.handleExtension("disconnect", null);
+
+        Object[] args = {"omero", 4064d, "root", "omero"};
+        ext.handleExtension("connectToOMERO", args);
+
+        Object[] args2 = {"testUser"};
+        ext.handleExtension("sudo", args2);
+
+        Object[] args3   = {"Project tag", "tag attached to a project"};
+
+        String   result = ext.handleExtension("createTag", args3);
+        Double   id     = Double.parseDouble(result);
+
+        Object[] args4  = {"tag", id, "project", 2.0};
+
+        ext.handleExtension("link", args4);
+        Object[] args5 = {"tag", id};
+
+        ext.handleExtension("delete", args5);
+
+        ext.handleExtension("endSudo", null);
+        assertNotNull(id);
+    }
+
+
+    @Test
     @Disabled("Requires X11")
     void testTable() throws Exception {
         ResultsTable rt = new ResultsTable();
