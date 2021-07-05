@@ -4,7 +4,16 @@
 
 A plugin for ImageJ to provide macro extensions to access OMERO.
 
-## How to use:
+## How to install
+
+If you already have the OMERO.insight plugin for Fiji: 
+1. Download the JAR file ([for this plugin](https://github.com/GReD-Clermont/imagej_omero_extensions/releases/latest/)) without dependencies.
+2. Download the JAR file without dependencies for this [library](https://github.com/GReD-Clermont/simple-omero-client/releases/latest/).
+3. Place these files in your plugins folder.
+
+Otherwise, you may download the file named "jar-with-dependencies" and place it in the plugins folder.
+
+## How to use
 
 Extensions first have to be loaded:
 
@@ -27,6 +36,7 @@ Ext.switchGroup(groupId);
 ```
 
 When done, you can disconnect using:
+
 ```
 Ext.disconnect()
 ```
@@ -197,6 +207,7 @@ nROIS = Ext.saveROIs(imageId, property);
 ### Saving images
 
 The current image can be saved (as a TIF) to a dataset in OMERO:
+
 ```
 newImageId = Ext.importImage(datasetId);
 ```
@@ -204,11 +215,13 @@ newImageId = Ext.importImage(datasetId);
 ### Attaching / deleting files
 
 Files can be attached to a project/dataset/image through *Ext.addFile*:
+
 ```
 fileId = Ext.addFile('image', imageId, path);
 ```
 
 They can also be deleted with *Ext.deleteFile*:
+
 ```
 Ext.deleteFile(fileId);
 ```
@@ -216,23 +229,41 @@ Ext.deleteFile(fileId);
 ### Attaching a table
 
 A table can be created/updated using the results with *Ext.addToTable*:
+
 ```
 Ext.addToTable(tableName, resultsName, imageId);
 ```
-If a column named ROI containing ROI IDs is present, these will be added to the table.
-Alternatively, if ROIs that were saved to OMERO are in the ROI Manager 
-and if their name appears in the labels or is in a column named ROI, they will be added too.
+
+If a column named ROI containing ROI IDs is present, these will be added to the table. Alternatively, if ROIs that were
+saved to OMERO are in the ROI Manager and if their name appears in the labels or is in a column named ROI, they will be
+added too.
 
 The table can then be saved to a project/dataset/image through *Ext.saveTable*:
+
 ```
 Ext.saveTable(tableName, 'dataset', datasetId);
 
 ```
 
 It can then be saved to a tab-separated text file through *Ext.saveTableAsTXT*:
+
 ```
 Ext.saveTableAsTXT(tableName, pathToTXT);
 
+```
+
+### Work as another user (sudo)
+
+If a user has sudo rights, it is possible to do all the above as another user:
+
+```
+Ext.sudo(otherUsername);
+```
+
+To switch back to the original user, this command should be used:
+
+```
+Ext.endSudo();
 ```
 
 ## License
