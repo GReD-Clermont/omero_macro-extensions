@@ -90,7 +90,7 @@
         <license.licenseName>gpl_v2</license.licenseName>
         <license.copyrightOwners>GReD</license.copyrightOwners>
         <allowedDuplicateClasses>com.esotericsoftware.kryo.*,com.esotericsoftware.minlog.*,com.esotericsoftware.reflectasm.*</allowedDuplicateClasses>
-        <soc.version>5.8.0-SNAPSHOT</soc.version>
+        <soc.version>5.8.0</soc.version>
     </properties>
 
     <dependencyManagement>
@@ -121,6 +121,7 @@
         <dependency>
             <groupId>net.imagej</groupId>
             <artifactId>ij</artifactId>
+            <version>1.53c</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -136,8 +137,8 @@
             <url>https://artifacts.openmicroscopy.org/artifactory/maven/</url>
         </repository>
         <repository>
-            <id>gred-snapshots</id>
-            <url>https://artifacts.igred.fr/snapshots</url>
+            <id>gred-releases</id>
+            <url>https://artifacts.igred.fr/releases</url>
         </repository>
     </repositories>
 
