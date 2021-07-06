@@ -6,12 +6,10 @@ A plugin for ImageJ to provide macro extensions to access OMERO.
 
 ## How to install
 
-If you already have the OMERO.insight plugin for Fiji: 
-1. Download the JAR file ([for this plugin](https://github.com/GReD-Clermont/imagej_omero_extensions/releases/latest/)) without dependencies.
-2. Download the JAR file without dependencies for this [library](https://github.com/GReD-Clermont/simple-omero-client/releases/latest/).
-3. Place these files in your plugins folder.
-
-Otherwise, you need to install the [OMERO.insight plugin for Fiji](https://omero-guides.readthedocs.io/en/latest/fiji/docs/installation.html) as well.
+1. Install the [OMERO.insight plugin for Fiji](https://omero-guides.readthedocs.io/en/latest/fiji/docs/installation.html) (if you haven't already).
+2. Download the JAR file for this [library](https://github.com/GReD-Clermont/simple-omero-client/releases/latest/).
+3. Download the JAR file ([for this plugin](https://github.com/GReD-Clermont/imagej_omero_extensions/releases/latest/)).
+4. Place these JAR files in your plugins folder.
 
 ## How to use
 
