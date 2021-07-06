@@ -11,7 +11,7 @@ If you already have the OMERO.insight plugin for Fiji:
 2. Download the JAR file without dependencies for this [library](https://github.com/GReD-Clermont/simple-omero-client/releases/latest/).
 3. Place these files in your plugins folder.
 
-Otherwise, you may download the file named "jar-with-dependencies" and place it in the plugins folder.
+Otherwise, you need to install the [OMERO.insight plugin for Fiji](https://omero-guides.readthedocs.io/en/latest/fiji/docs/installation.html) as well.
 
 ## How to use
 
