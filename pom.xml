@@ -42,6 +42,7 @@
             <roles>
                 <role>lead</role>
                 <role>developer</role>
+                <role>maintainer</role>
             </roles>
             <timezone>Europe/Paris</timezone>
         </developer>
@@ -90,7 +91,7 @@
         <license.licenseName>gpl_v2</license.licenseName>
         <license.copyrightOwners>GReD</license.copyrightOwners>
         <allowedDuplicateClasses>com.esotericsoftware.kryo.*,com.esotericsoftware.minlog.*,com.esotericsoftware.reflectasm.*</allowedDuplicateClasses>
-        <soc.version>5.8.1</soc.version>
+        <soc.version>5.8.2</soc.version>
     </properties>
 
     <dependencyManagement>

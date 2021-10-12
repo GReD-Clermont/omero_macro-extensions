@@ -13,9 +13,11 @@
  * Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
-package fr.igred.omero;
+package fr.igred.ij.plugin;
 
 
+import fr.igred.omero.Client;
+import fr.igred.omero.GenericObjectWrapper;
 import fr.igred.omero.annotations.TableWrapper;
 import fr.igred.omero.annotations.TagAnnotationWrapper;
 import fr.igred.omero.exception.AccessException;
@@ -28,6 +30,7 @@ import fr.igred.omero.repository.ProjectWrapper;
 import fr.igred.omero.roi.ROIWrapper;
 import ij.IJ;
 import ij.ImagePlus;
+import ij.gui.Overlay;
 import ij.gui.Roi;
 import ij.macro.ExtensionDescriptor;
 import ij.macro.Functions;
@@ -508,7 +511,7 @@ public class OMEROExtension implements PlugIn, MacroExtension {
 
 
     public void endSudo() {
-        if(switched != null) {
+        if (switched != null) {
             client = switched;
             switched = null;
         } else {
@@ -595,7 +598,8 @@ public class OMEROExtension implements PlugIn, MacroExtension {
 
         List<Roi> ijRois = ROIWrapper.toImageJ(rois);
 
-        RoiManager rm = RoiManager.getInstance2();
+        RoiManager rm = RoiManager.getInstance();
+        if (rm == null) rm = RoiManager.getRoiManager();
         for (Roi roi : ijRois) {
             roi.setImage(imp);
             rm.addRoi(roi);
@@ -608,10 +612,17 @@ public class OMEROExtension implements PlugIn, MacroExtension {
         int result = 0;
         try {
             ImageWrapper image = client.getImage(id);
+            ImagePlus    imp   = IJ.getImage();
 
-            RoiManager rm = RoiManager.getInstance2();
+            Overlay    overlay = imp.getOverlay();
+            RoiManager rm      = RoiManager.getInstance();
+            if (rm == null) rm = RoiManager.getRoiManager();
 
-            List<Roi> ijRois = Arrays.asList(rm.getRoisAsArray());
+            List<Roi> ijRois = new ArrayList<>();
+            if (overlay != null) {
+                ijRois.addAll(Arrays.asList(overlay.toArray()));
+            }
+            ijRois.addAll(Arrays.asList(rm.getRoisAsArray()));
 
             List<ROIWrapper> rois = ROIWrapper.fromImageJ(ijRois, property);
             rois.forEach(roi -> roi.setImage(image));
@@ -629,7 +640,7 @@ public class OMEROExtension implements PlugIn, MacroExtension {
 
 
     public void disconnect() {
-        if(switched != null) endSudo();
+        if (switched != null) endSudo();
         client.disconnect();
     }
 
