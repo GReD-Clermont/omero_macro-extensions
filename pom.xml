@@ -10,12 +10,12 @@
     </parent>
 
     <groupId>fr.igred</groupId>
-    <artifactId>omero_extensions</artifactId>
+    <artifactId>omero_macroextensions</artifactId>
     <version>1.0.1</version>
 
     <name>ImageJ OMERO macro extensions</name>
     <description>Plugin providing macro extensions for OMERO.</description>
-    <url>https://github.com/GReD-Clermont/imagej_omero_extensions</url>
+    <url>https://github.com/GReD-Clermont/omero_macroextensions</url>
     <inceptionYear>2021</inceptionYear>
 
     <organization>
@@ -63,24 +63,24 @@
     </mailingLists>
 
     <scm>
-        <connection>scm:git:git://github.com/GReD-Clermont/imagej_omero_extensions</connection>
-        <developerConnection>scm:git:git@github.com:GReD-Clermont/imagej_omero_extensions</developerConnection>
+        <connection>scm:git:git://github.com/GReD-Clermont/omero_macroextensions</connection>
+        <developerConnection>scm:git:git@github.com:GReD-Clermont/omero_macroextensions</developerConnection>
         <tag>HEAD</tag>
-        <url>https://github.com/GReD-Clermont/imagej_omero_extensions</url>
+        <url>https://github.com/GReD-Clermont/omero_macroextensions</url>
     </scm>
     <issueManagement>
         <system>GitHub Issues</system>
-        <url>https://github.com/GReD-Clermont/imagej_omero_extensions/issues</url>
+        <url>https://github.com/GReD-Clermont/omero_macroextensions/issues</url>
     </issueManagement>
     <ciManagement>
         <system>GitHub Actions</system>
-        <url>https://github.com/GReD-Clermont/imagej_omero_extensions/actions</url>
+        <url>https://github.com/GReD-Clermont/omero_macroextensions/actions</url>
     </ciManagement>
     <distributionManagement>
         <repository>
             <id>github</id>
             <name>GitHub GReD-Clermont Apache Maven Packages</name>
-            <url>https://maven.pkg.github.com/GReD-Clermont/imagej_omero_extensions</url>
+            <url>https://maven.pkg.github.com/GReD-Clermont/omero_macroextensions</url>
         </repository>
     </distributionManagement>
 
