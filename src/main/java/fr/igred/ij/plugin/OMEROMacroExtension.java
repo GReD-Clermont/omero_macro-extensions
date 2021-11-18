@@ -52,7 +52,7 @@ import java.util.stream.Collectors;
 import static ij.macro.ExtensionDescriptor.newDescriptor;
 
 
-public class OMEROExtension implements PlugIn, MacroExtension {
+public class OMEROMacroExtension implements PlugIn, MacroExtension {
 
     private static final String PROJECT = "project";
     private static final String DATASET = "dataset";

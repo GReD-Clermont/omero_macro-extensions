@@ -41,12 +41,12 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class OMEROExtensionTest {
 
-    private OMEROExtension ext;
+    private OMEROMacroExtension ext;
 
 
     @BeforeEach
     public void setUp() {
-        ext = new OMEROExtension();
+        ext = new OMEROMacroExtension();
         Object[] args = {"omero", 4064d, "testUser", "password"};
         ext.handleExtension("connectToOMERO", args);
     }
