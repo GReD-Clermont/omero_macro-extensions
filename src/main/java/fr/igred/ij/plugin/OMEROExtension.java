@@ -65,7 +65,7 @@ public class OMEROExtension implements PlugIn, MacroExtension {
             newDescriptor("switchGroup", this, ARG_NUMBER),
             newDescriptor("list", this, ARG_STRING, ARG_STRING + ARG_OPTIONAL, ARG_NUMBER + ARG_OPTIONAL),
             newDescriptor("createDataset", this, ARG_STRING, ARG_STRING, ARG_NUMBER + ARG_OPTIONAL),
-            newDescriptor("createProject", this, ARG_NUMBER, ARG_STRING, ARG_STRING),
+            newDescriptor("createProject", this, ARG_STRING, ARG_STRING),
             newDescriptor("createTag", this, ARG_STRING, ARG_STRING),
             newDescriptor("link", this, ARG_STRING, ARG_NUMBER, ARG_STRING, ARG_NUMBER),
             newDescriptor("addFile", this, ARG_STRING, ARG_NUMBER, ARG_STRING),

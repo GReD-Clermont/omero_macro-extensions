@@ -156,7 +156,7 @@ projectId = Ext.createProject(name, description);
 Datasets can be created with *Ext.createDataset*:
 
 ```
-datasetId = Ext.createDataset(projectId, name, description);
+datasetId = Ext.createDataset(name, description, projectId);
 ```
 
 Tags can be created with *Ext.createTag*:
@@ -189,14 +189,16 @@ Pixel intensities can be retrieved from images:
 imageplusID = Ext.getImage(imageIds[0]);
 ```
 
-ROIs from OMERO can also be added to the ROI manager (and the current image):
+ROIs from OMERO can also be added to the ROI manager (and the current image). 
+ROIs composed of multiple shapes (eg 3D/4D) will share the same values in the "ROI" and "ROI_ID" properties in ImageJ.
+This is achieved through:
 
 ```
 nIJROIs = Ext.getROIs(imageIds[0]);
 ```
 
 Conversely, ImageJ ROIs can also be saved to OMERO (the property is used to group ImageJ shapes into a single 3D/4D ROI
-on OMERO):
+on OMERO, if the string is empty, "ROI" is used):
 
 ```
 nROIS = Ext.saveROIs(imageId, property);
