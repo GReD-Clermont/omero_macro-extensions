@@ -238,12 +238,13 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
         TableWrapper table = tables.get(tableName);
 
         try {
+            String roiIdIJProperty = ROIWrapper.IJ_PROPERTY + "_ID";
             if (table == null) {
-                table = new TableWrapper(client, rt, imageId, ijRois, ROIWrapper.IJ_PROPERTY);
+                table = new TableWrapper(client, rt, imageId, ijRois, roiIdIJProperty);
                 table.setName(tableName);
                 tables.put(tableName, table);
             } else {
-                table.addRows(client, rt, imageId, ijRois, ROIWrapper.IJ_PROPERTY);
+                table.addRows(client, rt, imageId, ijRois, roiIdIJProperty);
             }
         } catch (ExecutionException | ServiceException | AccessException e) {
             IJ.error("Could not add results to table: " + e.getMessage());
