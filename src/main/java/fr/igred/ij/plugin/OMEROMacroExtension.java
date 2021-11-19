@@ -144,7 +144,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                 default:
                     IJ.error(INVALID + ": " + type + ".");
             }
-        } catch (ServiceException | AccessException e) {
+        } catch (ServiceException | AccessException | ExecutionException e) {
             IJ.error("Could not retrieve object: " + e.getMessage());
         }
         return object;
@@ -156,7 +156,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
         try {
             client.connect(host, port, username, password.toCharArray());
             connected = true;
-        } catch (ServiceException | ExecutionException e) {
+        } catch (ServiceException e) {
             IJ.error("Could not connect: " + e.getMessage());
         }
         return connected;
@@ -167,7 +167,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
         List<File> files = new ArrayList<>();
         try {
             files = client.getImage(imageId).download(client, path);
-        } catch (ServiceException | AccessException | OMEROServerError e) {
+        } catch (ServiceException | AccessException | OMEROServerError | ExecutionException e) {
             IJ.error("Could not download image: " + e.getMessage());
         }
         return files.stream().map(File::toString).collect(Collectors.joining(","));
@@ -384,7 +384,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                 default:
                     IJ.error(INVALID + ": " + type + ". Possible values are: projects, datasets, images or tags.");
             }
-        } catch (ServiceException | AccessException | OMEROServerError e) {
+        } catch (ServiceException | AccessException | OMEROServerError | ExecutionException e) {
             IJ.error("Could not retrieve " + type + ": " + e.getMessage());
         }
         return results;
@@ -416,7 +416,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                 default:
                     IJ.error(INVALID + ": " + type + ". Possible values are: projects, datasets, images or tags.");
             }
-        } catch (ServiceException | AccessException | OMEROServerError e) {
+        } catch (ServiceException | AccessException | OMEROServerError | ExecutionException e) {
             IJ.error("Could not retrieve project name: " + e.getMessage());
         }
         return results;
