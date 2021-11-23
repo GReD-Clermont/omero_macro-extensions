@@ -245,14 +245,12 @@ The table can then be saved to a project/dataset/image through *Ext.saveTable*:
 
 ```
 Ext.saveTable(tableName, 'dataset', datasetId);
-
 ```
 
 It can then be saved to a tab-separated text file through *Ext.saveTableAsTXT*:
 
 ```
 Ext.saveTableAsTXT(tableName, pathToTXT);
-
 ```
 
 ### Work as another user (sudo)

@@ -69,7 +69,8 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
             newDescriptor("createTag", this, ARG_STRING, ARG_STRING),
             newDescriptor("link", this, ARG_STRING, ARG_NUMBER, ARG_STRING, ARG_NUMBER),
             newDescriptor("addFile", this, ARG_STRING, ARG_NUMBER, ARG_STRING),
-            newDescriptor("addToTable", this, ARG_STRING, ARG_STRING + ARG_OPTIONAL, ARG_NUMBER + ARG_OPTIONAL, ARG_STRING + ARG_OPTIONAL),
+            newDescriptor("addToTable", this, ARG_STRING,
+                          ARG_STRING + ARG_OPTIONAL, ARG_NUMBER + ARG_OPTIONAL, ARG_STRING + ARG_OPTIONAL),
             newDescriptor("saveTable", this, ARG_STRING, ARG_STRING, ARG_NUMBER),
             newDescriptor("saveTableAsTXT", this, ARG_STRING, ARG_STRING),
             newDescriptor("clearTable", this, ARG_STRING),
@@ -106,6 +107,18 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
             singular = singular.substring(0, length - 1);
         }
         return singular;
+    }
+
+
+    private static Long doubleToLong(Double d) {
+        if (d != null) return d.longValue();
+        else return null;
+    }
+
+
+    private static ResultsTable getTable(String resultsName) {
+        if (resultsName == null) return ResultsTable.getResultsTable();
+        else return ResultsTable.getResultsTable(resultsName);
     }
 
 
@@ -227,23 +240,16 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     }
 
 
-    public void addToTable(String tableName, String resultsName, Long imageId, String property) {
-        ResultsTable rt;
-        if (tableName == null) rt = ResultsTable.getResultsTable();
-        else rt = ResultsTable.getResultsTable(resultsName);
-
-        RoiManager rm     = RoiManager.getRoiManager();
-        List<Roi>  ijRois = Arrays.asList(rm.getRoisAsArray());
-
+    public void addToTable(String tableName, ResultsTable results, Long imageId, List<Roi> ijRois, String property) {
         TableWrapper table = tables.get(tableName);
 
         try {
             if (table == null) {
-                table = new TableWrapper(client, rt, imageId, ijRois, property);
+                table = new TableWrapper(client, results, imageId, ijRois, property);
                 table.setName(tableName);
                 tables.put(tableName, table);
             } else {
-                table.addRows(client, rt, imageId, ijRois, property);
+                table.addRows(client, results, imageId, ijRois, property);
             }
         } catch (ExecutionException | ServiceException | AccessException e) {
             IJ.error("Could not add results to table: " + e.getMessage());
@@ -707,8 +713,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                 break;
 
             case "createDataset":
-                Long projectId = null;
-                if (args[2] != null) projectId = ((Double) args[2]).longValue();
+                Long projectId = doubleToLong((Double) args[2]);
                 id = createDataset((String) args[0], (String) args[1], projectId);
                 results = String.valueOf(id);
                 break;
@@ -726,14 +731,20 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
             case "addToTable":
                 tableName = (String) args[0];
                 String resultsName = (String) args[1];
-                Long imageId = null;
-                if (args[2] != null) imageId = ((Double) args[2]).longValue();
+                Long imageId = doubleToLong((Double) args[2]);
                 String property = (String) args[3];
-                addToTable(tableName, resultsName, imageId, property);
+
+                ResultsTable rt = getTable(resultsName);
+                RoiManager rm = RoiManager.getRoiManager();
+                List<Roi> ijRois = Arrays.asList(rm.getRoisAsArray());
+
+                addToTable(tableName, rt, imageId, ijRois, property);
                 break;
 
             case "saveTableAsTXT":
-                saveTableAsTXT((String) args[0], (String) args[1]);
+                tableName = (String) args[0];
+                path = (String) args[1];
+                saveTableAsTXT(tableName, path);
                 break;
 
             case "saveTable":
