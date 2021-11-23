@@ -22,7 +22,6 @@ import ij.ImagePlus;
 import ij.measure.ResultsTable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -32,6 +31,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
@@ -41,12 +41,12 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class OMEROExtensionTest {
 
-    private OMEROExtension ext;
+    private OMEROMacroExtension ext;
 
 
     @BeforeEach
     public void setUp() {
-        ext = new OMEROExtension();
+        ext = new OMEROMacroExtension();
         Object[] args = {"omero", 4064d, "testUser", "password"};
         ext.handleExtension("connectToOMERO", args);
     }
@@ -253,25 +253,32 @@ class OMEROExtensionTest {
 
 
     @Test
-    @Disabled("Requires X11")
     void testTable() throws Exception {
-        ResultsTable rt = new ResultsTable();
-        rt.incrementCounter();
-        rt.setLabel("test", 0);
-        rt.setValue("Size", 0, 25.0);
+        ResultsTable rt1 = new ResultsTable();
+        rt1.incrementCounter();
+        rt1.setLabel("test", 0);
+        rt1.setValue("Size", 0, 25.0);
+        rt1.show("test");
 
-        Object[] args = {"test_table", "test", 1.0d};
-        ext.handleExtension("addToTable", args);
+        ResultsTable rt2 = new ResultsTable();
+        rt2.incrementCounter();
+        rt2.setLabel("test", 0);
+        rt2.setValue("Size", 0, 50.0);
+
+        ext.addToTable("test_table", rt1, 1L, new ArrayList<>(0), null);
+        ext.addToTable("test_table", rt2, 1L, new ArrayList<>(0), null);
 
         Object[] args2 = {"test_table", "dataset", 1.0d};
         ext.handleExtension("saveTable", args2);
 
         Client client = new Client();
         client.connect("omero", 4064, "testUser", "password".toCharArray());
-        List<TableWrapper> tables = client.getImage(1L).getTables(client);
+        List<TableWrapper> tables = client.getDataset(1L).getTables(client);
         client.disconnect();
         assertEquals(1, tables.size());
-        assertEquals(1, tables.get(0).getRowCount());
+        assertEquals(2, tables.get(0).getRowCount());
+        assertEquals(25.0, tables.get(0).getData(0, 2));
+        assertEquals(50.0, tables.get(0).getData(1, 2));
     }
 
 }
