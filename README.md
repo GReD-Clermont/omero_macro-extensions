@@ -6,7 +6,9 @@ A plugin for ImageJ to provide macro extensions to access OMERO.
 
 ## How to install
 
-1. Install the [OMERO.insight plugin for Fiji](https://omero-guides.readthedocs.io/en/latest/fiji/docs/installation.html) (if you haven't already).
+1. Install
+   the [OMERO.insight plugin for Fiji](https://omero-guides.readthedocs.io/en/latest/fiji/docs/installation.html) (if
+   you haven't already).
 2. Download the JAR file for this [library](https://github.com/GReD-Clermont/simple-omero-client/releases/latest/).
 3. Download the JAR file ([for this plugin](https://github.com/GReD-Clermont/omero_macro-extensions/releases/latest/)).
 4. Place these JAR files in your plugins folder.
@@ -189,12 +191,13 @@ Pixel intensities can be retrieved from images:
 imageplusID = Ext.getImage(imageIds[0]);
 ```
 
-ROIs from OMERO can also be added to the ROI manager (and the current image). 
-ROIs composed of multiple shapes (eg 3D/4D) will share the same values in the "ROI" and "ROI_ID" properties in ImageJ.
+ROIs from OMERO can also be added to the ROI manager (and the current image). ROIs composed of multiple shapes (eg
+3D/4D) will share the same values in the "ROI" and "ROI_ID" properties in ImageJ. These can be optionnally changed with
+the "property" parameter: local indices will be in "property" while OMERO IDs will be in "property + _ID". 
 This is achieved through:
 
 ```
-nIJROIs = Ext.getROIs(imageIds[0]);
+nIJROIs = Ext.getROIs(imageIds[0], property);
 ```
 
 Conversely, ImageJ ROIs can also be saved to OMERO (the property is used to group ImageJ shapes into a single 3D/4D ROI
@@ -231,7 +234,7 @@ Ext.deleteFile(fileId);
 A table can be created/updated using the results with *Ext.addToTable*:
 
 ```
-Ext.addToTable(tableName, resultsName, imageId);
+Ext.addToTable(tableName, resultsName, imageId, roiProperty);
 ```
 
 If a column named ROI containing ROI IDs is present, these will be added to the table. Alternatively, if ROIs that were
