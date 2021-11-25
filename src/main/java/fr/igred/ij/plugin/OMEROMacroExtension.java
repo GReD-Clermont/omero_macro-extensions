@@ -243,16 +243,20 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     public void addToTable(String tableName, ResultsTable results, Long imageId, List<Roi> ijRois, String property) {
         TableWrapper table = tables.get(tableName);
 
-        try {
-            if (table == null) {
-                table = new TableWrapper(client, results, imageId, ijRois, property);
-                table.setName(tableName);
-                tables.put(tableName, table);
-            } else {
-                table.addRows(client, results, imageId, ijRois, property);
+        if(results == null) {
+            IJ.error("Results table does not exist.");
+        } else {
+            try {
+                if (table == null) {
+                    table = new TableWrapper(client, results, imageId, ijRois, property);
+                    table.setName(tableName);
+                    tables.put(tableName, table);
+                } else {
+                    table.addRows(client, results, imageId, ijRois, property);
+                }
+            } catch (ExecutionException | ServiceException | AccessException e) {
+                IJ.error("Could not add results to table: " + e.getMessage());
             }
-        } catch (ExecutionException | ServiceException | AccessException e) {
-            IJ.error("Could not add results to table: " + e.getMessage());
         }
     }
 
