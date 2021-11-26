@@ -33,6 +33,12 @@ Then, switching group can be performed through:
 Ext.switchGroup(groupId);
 ```
 
+You can also choose to only list objects for a given user (or all if username is empty or equal to "all"):
+
+```
+Ext.listForUser(username);
+```
+
 When done, you can disconnect using:
 
 ```

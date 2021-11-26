@@ -23,6 +23,7 @@ import fr.igred.omero.annotations.TagAnnotationWrapper;
 import fr.igred.omero.exception.AccessException;
 import fr.igred.omero.exception.OMEROServerError;
 import fr.igred.omero.exception.ServiceException;
+import fr.igred.omero.meta.ExperimenterWrapper;
 import fr.igred.omero.repository.DatasetWrapper;
 import fr.igred.omero.repository.GenericRepositoryObjectWrapper;
 import fr.igred.omero.repository.ImageWrapper;
@@ -63,6 +64,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     private final ExtensionDescriptor[] extensions = {
             newDescriptor("connectToOMERO", this, ARG_STRING, ARG_NUMBER, ARG_STRING, ARG_STRING),
             newDescriptor("switchGroup", this, ARG_NUMBER),
+            newDescriptor("listForUser", this, ARG_STRING),
             newDescriptor("list", this, ARG_STRING, ARG_STRING + ARG_OPTIONAL, ARG_NUMBER + ARG_OPTIONAL),
             newDescriptor("createDataset", this, ARG_STRING, ARG_STRING, ARG_NUMBER + ARG_OPTIONAL),
             newDescriptor("createProject", this, ARG_STRING, ARG_STRING),
@@ -90,6 +92,8 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
 
     private Client client = new Client();
     private Client switched;
+
+    private ExperimenterWrapper user = null;
 
 
     private static <T extends GenericObjectWrapper<?>> String listToIDs(List<T> list) {
@@ -119,6 +123,12 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     private static ResultsTable getTable(String resultsName) {
         if (resultsName == null) return ResultsTable.getResultsTable();
         else return ResultsTable.getResultsTable(resultsName);
+    }
+
+
+    private <T extends GenericObjectWrapper<?>> List<T> filterUser(List<T> list) {
+        if(user == null) return list;
+        else return list.stream().filter(o -> o.getOwner().getId() == user.getId()).collect(Collectors.toList());
     }
 
 
@@ -173,6 +183,29 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
             IJ.error("Could not connect: " + e.getMessage());
         }
         return connected;
+    }
+
+
+    public String setUser(String userName) {
+        String name = "-1";
+        if(userName != null && !userName.trim().isEmpty() && !userName.equalsIgnoreCase("all")) {
+            if(user != null) name = String.valueOf(user.getId());
+            ExperimenterWrapper newUser = user;
+            try {
+                newUser = client.getUser(userName);
+            } catch (ExecutionException | ServiceException | AccessException e) {
+                IJ.error("Could not retrieve user: " + userName);
+            }
+            if(newUser == null) {
+                IJ.log("Could not retrieve user: " + userName);
+            } else {
+                user = newUser;
+                name = String.valueOf(user.getId());
+            }
+        } else {
+            user = null;
+        }
+        return name;
     }
 
 
@@ -377,19 +410,19 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
             switch (singularType) {
                 case PROJECT:
                     List<ProjectWrapper> projects = client.getProjects();
-                    results = listToIDs(projects);
+                    results = listToIDs(filterUser(projects));
                     break;
                 case DATASET:
                     List<DatasetWrapper> datasets = client.getDatasets();
-                    results = listToIDs(datasets);
+                    results = listToIDs(filterUser(datasets));
                     break;
                 case IMAGE:
                     List<ImageWrapper> images = client.getImages();
-                    results = listToIDs(images);
+                    results = listToIDs(filterUser(images));
                     break;
                 case TAG:
                     List<TagAnnotationWrapper> tags = client.getTags();
-                    results = listToIDs(tags);
+                    results = listToIDs(filterUser(tags));
                     break;
                 default:
                     IJ.error(INVALID + ": " + type + ". Possible values are: projects, datasets, images or tags.");
@@ -409,19 +442,19 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
             switch (singularType) {
                 case PROJECT:
                     List<ProjectWrapper> projects = client.getProjects(name);
-                    results = listToIDs(projects);
+                    results = listToIDs(filterUser(projects));
                     break;
                 case DATASET:
                     List<DatasetWrapper> datasets = client.getDatasets(name);
-                    results = listToIDs(datasets);
+                    results = listToIDs(filterUser(datasets));
                     break;
                 case IMAGE:
                     List<ImageWrapper> images = client.getImages(name);
-                    results = listToIDs(images);
+                    results = listToIDs(filterUser(images));
                     break;
                 case TAG:
                     List<TagAnnotationWrapper> tags = client.getTags(name);
-                    results = listToIDs(tags);
+                    results = listToIDs(filterUser(tags));
                     break;
                 default:
                     IJ.error(INVALID + ": " + type + ". Possible values are: projects, datasets, images or tags.");
@@ -445,15 +478,15 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                     switch (singularType) {
                         case DATASET:
                             List<DatasetWrapper> datasets = project.getDatasets();
-                            results = listToIDs(datasets);
+                            results = listToIDs(filterUser(datasets));
                             break;
                         case IMAGE:
                             List<ImageWrapper> images = project.getImages(client);
-                            results = listToIDs(images);
+                            results = listToIDs(filterUser(images));
                             break;
                         case TAG:
                             List<TagAnnotationWrapper> tags = project.getTags(client);
-                            results = listToIDs(tags);
+                            results = listToIDs(filterUser(tags));
                             break;
                         default:
                             IJ.error(INVALID + ": " + type + ". Possible values are: datasets, images or tags.");
@@ -464,11 +497,11 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                     switch (singularType) {
                         case IMAGE:
                             List<ImageWrapper> images = dataset.getImages(client);
-                            results = listToIDs(images);
+                            results = listToIDs(filterUser(images));
                             break;
                         case TAG:
                             List<TagAnnotationWrapper> tags = dataset.getTags(client);
-                            results = listToIDs(tags);
+                            results = listToIDs(filterUser(tags));
                             break;
                         default:
                             IJ.error(INVALID + ": " + type + ". Possible values are: images or tags.");
@@ -476,7 +509,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                     break;
                 case IMAGE:
                     if (singularType.equals(TAG)) {
-                        results = listToIDs(client.getImage(id).getTags(client));
+                        results = listToIDs(filterUser(client.getImage(id).getTags(client)));
                     } else {
                         IJ.error("Invalid type: " + type + ". Only possible value is: tags.");
                     }
@@ -486,15 +519,15 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                     switch (singularType) {
                         case PROJECT:
                             List<ProjectWrapper> projects = tag.getProjects(client);
-                            results = listToIDs(projects);
+                            results = listToIDs(filterUser(projects));
                             break;
                         case DATASET:
                             List<DatasetWrapper> datasets = tag.getDatasets(client);
-                            results = listToIDs(datasets);
+                            results = listToIDs(filterUser(datasets));
                             break;
                         case IMAGE:
                             List<ImageWrapper> images = tag.getImages(client);
-                            results = listToIDs(images);
+                            results = listToIDs(filterUser(images));
                             break;
                         default:
                             IJ.error(INVALID + ": " + type + ". Possible values are: projects, datasets or images.");
@@ -690,6 +723,10 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                 long groupId = ((Double) args[0]).longValue();
                 client.switchGroup(groupId);
                 results = String.valueOf(client.getCurrentGroupId());
+                break;
+
+            case "listForUser":
+                results = setUser((String) args[0]);
                 break;
 
             case "importImage":
