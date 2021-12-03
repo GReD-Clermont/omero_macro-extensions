@@ -78,7 +78,7 @@ print(imageName);
 ```
 tags = Ext.list("tags");
 print(tags);
-projectIds = split(tags,",");
+tagIds = split(tags,",");
 tagName = Ext.getName("tag", tagIds[0]);
 print(tagName);
 ```
