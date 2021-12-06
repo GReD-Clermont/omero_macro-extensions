@@ -127,7 +127,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
 
 
     private <T extends GenericObjectWrapper<?>> List<T> filterUser(List<T> list) {
-        if(user == null) return list;
+        if (user == null) return list;
         else return list.stream().filter(o -> o.getOwner().getId() == user.getId()).collect(Collectors.toList());
     }
 
@@ -188,15 +188,15 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
 
     public String setUser(String userName) {
         String name = "-1";
-        if(userName != null && !userName.trim().isEmpty() && !userName.equalsIgnoreCase("all")) {
-            if(user != null) name = String.valueOf(user.getId());
+        if (userName != null && !userName.trim().isEmpty() && !userName.equalsIgnoreCase("all")) {
+            if (user != null) name = String.valueOf(user.getId());
             ExperimenterWrapper newUser = user;
             try {
                 newUser = client.getUser(userName);
             } catch (ExecutionException | ServiceException | AccessException e) {
                 IJ.error("Could not retrieve user: " + userName);
             }
-            if(newUser == null) {
+            if (newUser == null) {
                 IJ.log("Could not retrieve user: " + userName);
             } else {
                 user = newUser;
@@ -276,7 +276,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     public void addToTable(String tableName, ResultsTable results, Long imageId, List<Roi> ijRois, String property) {
         TableWrapper table = tables.get(tableName);
 
-        if(results == null) {
+        if (results == null) {
             IJ.error("Results table does not exist.");
         } else {
             try {
@@ -628,7 +628,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     }
 
 
-    public int getROIs(long id, String property) {
+    public int getROIs(ImagePlus imp, long id, String property) {
         List<ROIWrapper> rois = new ArrayList<>();
         try {
             ImageWrapper image = client.getImage(id);
@@ -636,8 +636,6 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
         } catch (ServiceException | AccessException | ExecutionException e) {
             IJ.error("Could not retrieve image with ROIs: " + e.getMessage());
         }
-
-        ImagePlus imp = IJ.getImage();
 
         List<Roi> ijRois = ROIWrapper.toImageJ(rois, property);
 
@@ -651,30 +649,46 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     }
 
 
-    public int saveROIs(long id, String property) {
+    public int saveROIs(ImagePlus imp, long id, String property) {
         int result = 0;
         try {
             ImageWrapper image = client.getImage(id);
-            ImagePlus    imp   = IJ.getImage();
 
-            Overlay    overlay = imp.getOverlay();
-            RoiManager rm      = RoiManager.getInstance();
-            if (rm == null) rm = RoiManager.getRoiManager();
-
-            List<Roi> ijRois = new ArrayList<>();
+            Overlay overlay = imp.getOverlay();
             if (overlay != null) {
-                ijRois.addAll(Arrays.asList(overlay.toArray()));
-            }
-            ijRois.addAll(Arrays.asList(rm.getRoisAsArray()));
+                List<Roi> ijRois = Arrays.asList(overlay.toArray());
 
-            List<ROIWrapper> rois = ROIWrapper.fromImageJ(ijRois, property);
-            rois.forEach(roi -> roi.setImage(image));
-            for (ROIWrapper roi : rois) {
-                image.saveROI(client, roi);
+                List<ROIWrapper> rois = ROIWrapper.fromImageJ(ijRois, property);
+                rois.forEach(roi -> roi.setImage(image));
+                for (ROIWrapper roi : rois) {
+                    image.saveROI(client, roi);
+                }
+                result += rois.size();
+                overlay.clear();
+                List<Roi> newRois = ROIWrapper.toImageJ(rois, property);
+                for (Roi roi : newRois) {
+                    roi.setImage(imp);
+                    overlay.add(roi);
+                }
             }
-            result = rois.size();
-            rm.reset();
-            this.getROIs(id, property);
+
+            RoiManager rm = RoiManager.getInstance();
+            if (rm != null) {
+                List<Roi> ijRois = Arrays.asList(rm.getRoisAsArray());
+
+                List<ROIWrapper> rois = ROIWrapper.fromImageJ(ijRois, property);
+                rois.forEach(roi -> roi.setImage(image));
+                for (ROIWrapper roi : rois) {
+                    image.saveROI(client, roi);
+                }
+                result += rois.size();
+                rm.reset();
+                List<Roi> newRois = ROIWrapper.toImageJ(rois, property);
+                for (Roi roi : newRois) {
+                    roi.setImage(imp);
+                    rm.addRoi(roi);
+                }
+            }
         } catch (ServiceException | AccessException | ExecutionException e) {
             IJ.error("Could not save ROIs to image: " + e.getMessage());
         }
@@ -846,14 +860,14 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
             case "getROIs":
                 id = ((Double) args[0]).longValue();
                 property = (String) args[1];
-                int nIJRois = getROIs(id, property);
+                int nIJRois = getROIs(IJ.getImage(), id, property);
                 results = String.valueOf(nIJRois);
                 break;
 
             case "saveROIs":
                 id = ((Double) args[0]).longValue();
                 property = (String) args[1];
-                int nROIs = saveROIs(id, property);
+                int nROIs = saveROIs(IJ.getImage(), id, property);
                 results = String.valueOf(nROIs);
                 break;
 
