@@ -188,9 +188,9 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
 
 
     public String setUser(String userName) {
-        String name = "-1";
+        String id = "-1";
         if (userName != null && !userName.trim().isEmpty() && !userName.equalsIgnoreCase("all")) {
-            if (user != null) name = String.valueOf(user.getId());
+            if (user != null) id = String.valueOf(user.getId());
             ExperimenterWrapper newUser = user;
             try {
                 newUser = client.getUser(userName);
@@ -201,12 +201,12 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                 IJ.log("Could not retrieve user: " + userName);
             } else {
                 user = newUser;
-                name = String.valueOf(user.getId());
+                id = String.valueOf(user.getId());
             }
         } else {
             user = null;
         }
-        return name;
+        return id;
     }
 
 
@@ -548,7 +548,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
         switched = client;
         try {
             client = switched.sudoGetUser(user);
-        } catch (ServiceException | AccessException | ExecutionException e) {
+        } catch (ServiceException | AccessException | ExecutionException | NullPointerException e) {
             IJ.error("Could not switch user: " + e.getMessage());
         }
     }
@@ -614,7 +614,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
         Long tagId     = map.get(TAG);
 
         try {
-            // Link tag to repository object
+            // Unlink tag from repository object
             if (t1.equals(TAG) ^ t2.equals(TAG)) {
                 String obj = t1.equals(TAG) ? t2 : t1;
                 GenericRepositoryObjectWrapper<?> object = getRepositoryObject(obj, map.get(obj));

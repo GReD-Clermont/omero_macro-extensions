@@ -37,10 +37,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.*;
 
 
 @ExtendWith(TestResultLogger.class)
@@ -60,6 +57,32 @@ class OMEROExtensionTest {
     @AfterEach
     public void tearDown() {
         ext.handleExtension("disconnect", null);
+    }
+
+
+    @Test
+    void testSwitchGroup() {
+        Object[] args    = {4.0d};
+        Object[] args2   = {3.0d};
+        String   result  = ext.handleExtension("switchGroup", args);
+        String   result2 = ext.handleExtension("switchGroup", args2);
+        assertEquals(args[0], Double.parseDouble(result));
+        assertEquals(args2[0], Double.parseDouble(result2));
+    }
+
+
+    @ParameterizedTest
+    @CsvSource(delimiter = ';', value = {"testUser;2",
+                                         "all;-1",
+                                         "'';-1",
+                                         ";-1",})
+    void testListForUser(String user, double output) {
+        Object[] args    = {user};
+        String   result  = ext.handleExtension("listForUser", args);
+        Object[] args2   = {"projects", null, null};
+        String   result2 = ext.handleExtension("list", args2);
+        assertEquals(output, Double.parseDouble(result));
+        assertEquals("1,2", result2);
     }
 
 
@@ -169,8 +192,9 @@ class OMEROExtensionTest {
     @ParameterizedTest
     @CsvSource(delimiter = ';', value = {"tag;1.0;project;2.0",
                                          "tag;1.0;dataset;3.0",
-                                         "dataset;3.0;project;2.0",})
-    void testUnlink(String type1, double id1, String type2, double id2) {
+                                         "dataset;3.0;project;2.0",
+                                         "image;1.0;dataset;1.0",})
+    void testUnlinkThenLink(String type1, double id1, String type2, double id2) {
         Object[] listArgs = {type1, type2, id2};
         Object[] args     = {type1, id1, type2, id2};
 
