@@ -23,6 +23,7 @@ import ij.measure.ResultsTable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
@@ -42,6 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.fail;
 
 
+@ExtendWith(TestResultLogger.class)
 class OMEROExtensionTest {
 
     private OMEROMacroExtension ext;
@@ -172,8 +174,8 @@ class OMEROExtensionTest {
         Object[] listArgs = {type1, type2, id2};
         Object[] args     = {type1, id1, type2, id2};
 
-        String res = ext.handleExtension("list", listArgs);
-        int size = res.isEmpty() ? 0 : res.split(",").length;
+        String res  = ext.handleExtension("list", listArgs);
+        int    size = res.isEmpty() ? 0 : res.split(",").length;
 
         ext.handleExtension("unlink", args);
         res = ext.handleExtension("list", listArgs);
