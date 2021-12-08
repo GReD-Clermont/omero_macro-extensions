@@ -70,6 +70,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
             newDescriptor("createProject", this, ARG_STRING, ARG_STRING),
             newDescriptor("createTag", this, ARG_STRING, ARG_STRING),
             newDescriptor("link", this, ARG_STRING, ARG_NUMBER, ARG_STRING, ARG_NUMBER),
+            newDescriptor("unlink", this, ARG_STRING, ARG_NUMBER, ARG_STRING, ARG_NUMBER),
             newDescriptor("addFile", this, ARG_STRING, ARG_NUMBER, ARG_STRING),
             newDescriptor("addToTable", this, ARG_STRING,
                           ARG_STRING + ARG_OPTIONAL, ARG_NUMBER + ARG_OPTIONAL, ARG_STRING + ARG_OPTIONAL),
@@ -571,8 +572,8 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
         map.put(t1, id1);
         map.put(t2, id2);
 
-        Long datasetId = map.get(DATASET);
         Long projectId = map.get(PROJECT);
+        Long datasetId = map.get(DATASET);
         Long imageId   = map.get(IMAGE);
         Long tagId     = map.get(TAG);
 
@@ -584,7 +585,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                 GenericRepositoryObjectWrapper<?> object = getRepositoryObject(obj, map.get(obj));
                 if (object != null) object.addTag(client, tagId);
             } else if (datasetId == null || (projectId == null && imageId == null)) {
-                IJ.error("Cannot link " + type1 + " and " + type2);
+                IJ.error(String.format("Cannot link %s and %s", type1, type2));
             } else { // Or link dataset to image or project
                 DatasetWrapper dataset = client.getDataset(datasetId);
                 if (projectId != null) {
@@ -594,7 +595,45 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                 }
             }
         } catch (ServiceException | AccessException | ExecutionException e) {
-            IJ.error("Could not link " + type2 + " and " + type1 + ": " + e.getMessage());
+            IJ.error(String.format("Cannot link %s and %s: %s", type1, type2, e.getMessage()));
+        }
+    }
+
+
+    public void unlink(String type1, long id1, String type2, long id2) {
+        String t1 = singularType(type1);
+        String t2 = singularType(type2);
+
+        Map<String, Long> map = new HashMap<>(2);
+        map.put(t1, id1);
+        map.put(t2, id2);
+
+        Long projectId = map.get(PROJECT);
+        Long datasetId = map.get(DATASET);
+        Long imageId   = map.get(IMAGE);
+        Long tagId     = map.get(TAG);
+
+        try {
+            // Link tag to repository object
+            if (t1.equals(TAG) ^ t2.equals(TAG)) {
+                String obj = t1.equals(TAG) ? t2 : t1;
+                GenericRepositoryObjectWrapper<?> object = getRepositoryObject(obj, map.get(obj));
+                if (object != null) object.unlink(client, client.getTag(tagId));
+            } else if (datasetId == null || (projectId == null && imageId == null)) {
+                IJ.error(String.format("Cannot unlink %s and %s", type1, type2));
+            } else { // Or unlink dataset from image or project
+                DatasetWrapper dataset = client.getDataset(datasetId);
+                if (projectId != null) {
+                    client.getProject(projectId).removeDataset(client, dataset);
+                } else {
+                    dataset.removeImage(client, client.getImage(imageId));
+                }
+            }
+        } catch (ServiceException | AccessException | ExecutionException | OMEROServerError e) {
+            IJ.error(String.format("Cannot unlink %s and %s: %s", type1, type2, e.getMessage()));
+        } catch (InterruptedException e) {
+            IJ.error(String.format("Cannot unlink %s and %s: %s", type1, type2, e.getMessage()));
+            Thread.currentThread().interrupt();
         }
     }
 
@@ -841,6 +880,14 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                 String type2 = (String) args[2];
                 long id2 = ((Double) args[3]).longValue();
                 link(type1, id1, type2, id2);
+                break;
+
+            case "unlink":
+                type1 = (String) args[0];
+                id1 = ((Double) args[1]).longValue();
+                type2 = (String) args[2];
+                id2 = ((Double) args[3]).longValue();
+                unlink(type1, id1, type2, id2);
                 break;
 
             case "getName":

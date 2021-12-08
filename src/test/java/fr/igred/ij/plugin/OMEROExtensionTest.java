@@ -36,7 +36,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.fail;
 
 
 class OMEROExtensionTest {
@@ -70,7 +73,7 @@ class OMEROExtensionTest {
     void testListAll(String extension, String type, String output) {
         Object[] args   = {type, null, null};
         String   result = ext.handleExtension(extension, args);
-        assertEquals(output, result);
+        assertEquals(output, result, String.format("\"%s\" failed for: %s", extension, type));
     }
 
 
@@ -86,7 +89,7 @@ class OMEROExtensionTest {
     void testListByName(String extension, String type, String name, String output) {
         Object[] args   = {type, name, null};
         String   result = ext.handleExtension(extension, args);
-        assertEquals(output, result);
+        assertEquals(output, result, String.format("\"%s\" failed for: %s,%s", extension, type, name));
     }
 
 
@@ -106,7 +109,7 @@ class OMEROExtensionTest {
     void testListFrom(String extension, String type, String parent, double id, String output) {
         Object[] args   = {type, parent, id};
         String   result = ext.handleExtension(extension, args);
-        assertEquals(output, result);
+        assertEquals(output, result, String.format("\"%s\" failed for: %s,%s,%f", extension, type, parent, id));
     }
 
 
@@ -122,7 +125,7 @@ class OMEROExtensionTest {
     void testGetName(String extension, String type, double id, String output) {
         Object[] args   = {type, id};
         String   result = ext.handleExtension(extension, args);
-        assertEquals(output, result);
+        assertEquals(output, result, String.format("\"%s\" failed for: %s,%f", extension, type, id));
     }
 
 
@@ -158,6 +161,30 @@ class OMEROExtensionTest {
         Object[] args3 = {"tag", id};
         ext.handleExtension("delete", args3);
         assertNotNull(id);
+    }
+
+
+    @ParameterizedTest
+    @CsvSource(delimiter = ';', value = {"tag;1.0;project;2.0",
+                                         "tag;1.0;dataset;3.0",
+                                         "dataset;3.0;project;2.0",})
+    void testUnlink(String type1, double id1, String type2, double id2) {
+        Object[] listArgs = {type1, type2, id2};
+        Object[] args     = {type1, id1, type2, id2};
+
+        String res = ext.handleExtension("list", listArgs);
+        int size = res.isEmpty() ? 0 : res.split(",").length;
+
+        ext.handleExtension("unlink", args);
+        res = ext.handleExtension("list", listArgs);
+        int newSize = res.isEmpty() ? 0 : res.split(",").length;
+
+        ext.handleExtension("link", args);
+        res = ext.handleExtension("list", listArgs);
+        int checkSize = res.isEmpty() ? 0 : res.split(",").length;
+
+        assertEquals(size - 1, newSize, String.format("Unlinking failed for: %s,%f,%s,%f", type1, id1, type2, id2));
+        assertEquals(size, checkSize, String.format("Linking failed for: %s,%f,%s,%f", type1, id1, type2, id2));
     }
 
 

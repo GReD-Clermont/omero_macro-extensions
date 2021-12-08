@@ -171,12 +171,18 @@ Tags can be created with *Ext.createTag*:
 tagId = Ext.createTag(name, description);
 ```
 
-### Linking objects
+### Linking/unlinking objects
 
 Objects can be linked with *Ext.link*, e.g.:
 
 ```
 Ext.link("dataset", datasetId, "tag", tagId);
+```
+
+They can also be unlinked with *Ext.unlink*, e.g.:
+
+```
+Ext.unlink("dataset", datasetId, "tag", tagId);
 ```
 
 ### Deleting objects
