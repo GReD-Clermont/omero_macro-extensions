@@ -19,6 +19,8 @@ package fr.igred.ij.plugin;
 import fr.igred.omero.Client;
 import fr.igred.omero.annotations.TableWrapper;
 import ij.ImagePlus;
+import ij.gui.Overlay;
+import ij.gui.Roi;
 import ij.measure.ResultsTable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -251,6 +253,19 @@ class OMEROExtensionTest {
         ImagePlus imp = ext.getImage(1L);
         assertEquals(512, imp.getWidth());
         assertEquals(512, imp.getHeight());
+    }
+
+
+    @Test
+    void testSaveROIs() {
+        ImagePlus imp = ext.getImage(1L);
+        Overlay overlay = new Overlay();
+        Roi roi = new Roi(25, 30, 70, 50);
+        roi.setImage(imp);
+        overlay.add(roi);
+        imp.setOverlay(overlay);
+        int nROIs = ext.saveROIs(imp, 1L, "");
+        assertEquals(1, nROIs);
     }
 
 

@@ -187,10 +187,10 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     }
 
 
-    public String setUser(String userName) {
-        String id = "-1";
+    public long setUser(String userName) {
+        long id = -1L;
         if (userName != null && !userName.trim().isEmpty() && !userName.equalsIgnoreCase("all")) {
-            if (user != null) id = String.valueOf(user.getId());
+            if (user != null) id = user.getId();
             ExperimenterWrapper newUser = user;
             try {
                 newUser = client.getUser(userName);
@@ -201,7 +201,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                 IJ.log("Could not retrieve user: " + userName);
             } else {
                 user = newUser;
-                id = String.valueOf(user.getId());
+                id = user.getId();
             }
         } else {
             user = null;
@@ -779,7 +779,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                 break;
 
             case "listForUser":
-                results = setUser((String) args[0]);
+                results = String.valueOf(setUser((String) args[0]));
                 break;
 
             case "importImage":

@@ -19,6 +19,8 @@ public class TestResultLogger implements TestWatcher, BeforeTestExecutionCallbac
     public static final String ANSI_YELLOW = "\u001B[33m";
     public static final String ANSI_BLUE   = "\u001B[34m";
 
+    private static final String FORMAT      = "[%-25s]\t%-40s\t%s (%.3f s)";
+
     private long start = System.currentTimeMillis();
 
     private Logger logger;
@@ -67,7 +69,7 @@ public class TestResultLogger implements TestWatcher, BeforeTestExecutionCallbac
         String testName    = context.getTestMethod().orElse(context.getRequiredTestMethod()).getName();
         String displayName = context.getDisplayName();
         String status      = ANSI_BLUE + "DISABLED" + ANSI_RESET;
-        logger.info(String.format("[%-20s]\t%-40s\t%s (%.3f s)", testName, displayName, status, time));
+        logger.info(String.format(FORMAT, testName, displayName, status, time));
     }
 
 
@@ -86,7 +88,7 @@ public class TestResultLogger implements TestWatcher, BeforeTestExecutionCallbac
         String displayName = context.getDisplayName();
         displayName = displayName.equals(testName + "()") ? "" : displayName;
         String status = ANSI_GREEN + "SUCCEEDED" + ANSI_RESET;
-        logger.info(String.format("[%-20s]\t%-40s\t%s (%.3f s)", testName, displayName, status, time));
+        logger.info(String.format(FORMAT, testName, displayName, status, time));
     }
 
 
@@ -106,7 +108,7 @@ public class TestResultLogger implements TestWatcher, BeforeTestExecutionCallbac
         String displayName = context.getDisplayName();
         displayName = displayName.equals(testName + "()") ? "" : displayName;
         String status = ANSI_YELLOW + "ABORTED" + ANSI_RESET;
-        logger.info(String.format("[%-20s]\t%-40s\t%s (%.3f s)", testName, displayName, status, time));
+        logger.info(String.format(FORMAT, testName, displayName, status, time));
     }
 
 
@@ -126,7 +128,7 @@ public class TestResultLogger implements TestWatcher, BeforeTestExecutionCallbac
         String displayName = context.getDisplayName();
         displayName = displayName.equals(testName + "()") ? "" : displayName;
         String status = ANSI_RED + "FAILED" + ANSI_RESET;
-        logger.info(String.format("[%-20s]\t%-40s\t%s (%.3f s)", testName, displayName, status, time));
+        logger.info(String.format(FORMAT, testName, displayName, status, time));
     }
 
 }
