@@ -46,7 +46,12 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
@@ -82,7 +87,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
             newDescriptor("delete", this, ARG_STRING, ARG_NUMBER),
             newDescriptor("getName", this, ARG_STRING, ARG_NUMBER),
             newDescriptor("getImage", this, ARG_NUMBER),
-            newDescriptor("getROIs", this, ARG_NUMBER, ARG_STRING + ARG_OPTIONAL),
+            newDescriptor("getROIs", this, ARG_NUMBER, ARG_NUMBER + ARG_OPTIONAL, ARG_STRING + ARG_OPTIONAL),
             newDescriptor("saveROIs", this, ARG_NUMBER, ARG_STRING + ARG_OPTIONAL),
             newDescriptor("sudo", this, ARG_STRING),
             newDescriptor("endSudo", this),
@@ -617,6 +622,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
             // Unlink tag from repository object
             if (t1.equals(TAG) ^ t2.equals(TAG)) {
                 String obj = t1.equals(TAG) ? t2 : t1;
+
                 GenericRepositoryObjectWrapper<?> object = getRepositoryObject(obj, map.get(obj));
                 if (object != null) object.unlink(client, client.getTag(tagId));
             } else if (datasetId == null || (projectId == null && imageId == null)) {
@@ -667,7 +673,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     }
 
 
-    public int getROIs(ImagePlus imp, long id, String property) {
+    public int getROIs(ImagePlus imp, long id, boolean toOverlay, String property) {
         List<ROIWrapper> rois = new ArrayList<>();
         try {
             ImageWrapper image = client.getImage(id);
@@ -678,11 +684,23 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
 
         List<Roi> ijRois = ROIWrapper.toImageJ(rois, property);
 
-        RoiManager rm = RoiManager.getInstance();
-        if (rm == null) rm = RoiManager.getRoiManager();
-        for (Roi roi : ijRois) {
-            roi.setImage(imp);
-            rm.addRoi(roi);
+        if (toOverlay) {
+            Overlay overlay = imp.getOverlay();
+            if (overlay == null) {
+                overlay = new Overlay();
+                imp.setOverlay(overlay);
+            }
+            for (Roi roi : ijRois) {
+                roi.setImage(imp);
+                overlay.add(roi);
+            }
+        } else {
+            RoiManager rm = RoiManager.getInstance();
+            if (rm == null) rm = RoiManager.getRoiManager();
+            for (Roi roi : ijRois) {
+                roi.setImage(imp);
+                rm.addRoi(roi);
+            }
         }
         return ijRois.size();
     }
@@ -906,8 +924,10 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
 
             case "getROIs":
                 id = ((Double) args[0]).longValue();
-                property = (String) args[1];
-                int nIJRois = getROIs(IJ.getImage(), id, property);
+                Double ov = (Double) args[1];
+                boolean toOverlay = ov != null && ov != 0;
+                property = (String) args[2];
+                int nIJRois = getROIs(IJ.getImage(), id, toOverlay, property);
                 results = String.valueOf(nIJRois);
                 break;
 

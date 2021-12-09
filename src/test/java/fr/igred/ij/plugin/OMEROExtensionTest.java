@@ -39,7 +39,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.fail;
 
 
 @ExtendWith(TestResultLogger.class)
@@ -257,15 +260,20 @@ class OMEROExtensionTest {
 
 
     @Test
-    void testSaveROIs() {
-        ImagePlus imp = ext.getImage(1L);
-        Overlay overlay = new Overlay();
-        Roi roi = new Roi(25, 30, 70, 50);
+    void testSaveAndGetROIs() {
+        ImagePlus imp     = ext.getImage(1L);
+        Overlay   overlay = new Overlay();
+        Roi       roi     = new Roi(25, 30, 70, 50);
         roi.setImage(imp);
         overlay.add(roi);
         imp.setOverlay(overlay);
-        int nROIs = ext.saveROIs(imp, 1L, "");
-        assertEquals(1, nROIs);
+        int savedROIs  = ext.saveROIs(imp, 1L, "");
+        overlay.clear();
+        int loadedROIs = ext.getROIs(imp, 1L, true, "");
+
+        assertEquals(1, savedROIs);
+        assertEquals(1, loadedROIs);
+        assertEquals(1, imp.getOverlay().size());
     }
 
 
