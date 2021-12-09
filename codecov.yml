@@ -1,0 +1,6 @@
+coverage:
+  range: "60...90"
+  status:
+    patch:
+      default:
+        only_pulls: true

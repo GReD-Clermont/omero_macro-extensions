@@ -64,6 +64,9 @@ jobs:
           DOCKER_ARGS: -v ${{ env.HOME }}/.m2:/root/.m2 -v ${{ github.workspace }}/target:/src/target -t
       - name: Set folders ownership back to current user
         run: sudo chown -R $(id -u):$(id -g) $GITHUB_WORKSPACE && sudo chown -R $(id -u):$(id -g) $HOME
+      - name: Upload to codecov after successful tests
+        if: ${{ success() }}
+        run: bash <(curl -s https://codecov.io/bash)
       - name: Upload Artifact
         uses: actions/upload-artifact@v2
         with:
