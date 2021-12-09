@@ -137,6 +137,8 @@ class OMEROExtensionTest {
                                          "list;project;tags;1.0;2",
                                          "list;datasets;tag;1.0;3",
                                          "list;dataset;tags;1.0;3",
+                                         "list;images;project;1.0;1,2,3",
+                                         "list;image;projects;1.0;1,2,3",
                                          "list;images;tag;1.0;1,2,4",
                                          "list;image;tags;1.0;1,2,4",})
     void testListFrom(String extension, String type, String parent, double id, String output) {
@@ -301,6 +303,7 @@ class OMEROExtensionTest {
         Object[] args3 = {"image", "dataset", 2.0D};
         listIds = ext.handleExtension("list", args3);
         assertEquals("", listIds);
+        Files.deleteIfExists(f.toPath());
     }
 
 

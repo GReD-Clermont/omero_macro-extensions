@@ -25,10 +25,14 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.file.Files;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 
 @ExtendWith(TestResultLogger.class)
@@ -77,6 +81,51 @@ class OMEROExtensionErrorTest {
 
 
     @Test
+    void testConnectionError() {
+        ext.handleExtension("disconnect", null);
+        Object[] args = {"omero", 4064d, "omero", "password"};
+        ext.handleExtension("connectToOMERO", args);
+        String expected = "Could not connect: Cannot connect to OMERO";
+        assertEquals(expected, outContent.toString().trim());
+    }
+
+
+    @Test
+    void testDownloadImageError() {
+        Object[] args = {-1.0d, "."};
+        ext.handleExtension("downloadImage", args);
+        String expected = "Could not download image: Image -1 doesn't exist in this context";
+        assertEquals(expected, outContent.toString().trim());
+    }
+
+
+    @Test
+    void testImportImageError() throws IOException {
+        String path = "./8bit-unsigned&pixelType=uint8&sizeZ=3&sizeC=5&sizeT=7&sizeX=512&sizeY=512.fake";
+        File   f    = new File(path);
+        if (!f.createNewFile()) {
+            System.err.println("\"" + f.getCanonicalPath() + "\" could not be created.");
+            fail();
+        }
+
+        Object[] args1 = {-1.0d, path};
+        ext.handleExtension("importImage", args1);
+        String expected = "Could not import image: Dataset -1 doesn't exist in this context";
+        assertEquals(expected, outContent.toString().trim());
+        Files.deleteIfExists(f.toPath());
+    }
+
+
+    @Test
+    void testGetImageError() {
+        Object[] args = {-1.0d};
+        ext.handleExtension("getImage", args);
+        String expected = "Could not retrieve image: Image -1 doesn't exist in this context";
+        assertEquals(expected, outContent.toString().trim());
+    }
+
+
+    @Test
     void testListForUserError() {
         Object[] args = {"hello"};
         ext.handleExtension("listForUser", args);
@@ -113,9 +162,9 @@ class OMEROExtensionErrorTest {
 
     @ParameterizedTest
     @CsvSource(delimiter = ';', value = {"tag;hello;2",
-                                         "project;hello;2",
-                                         "dataset;hello;2",
-                                         "image;hello;2",
+                                         "hello;project;2",
+                                         "hello;dataset;2",
+                                         "hello;image;2",
                                          "hello;tag;2",
                                          "hello;TestDatasetImport;",
                                          "hello;;",})
@@ -124,7 +173,7 @@ class OMEROExtensionErrorTest {
         String   output = ext.handleExtension("list", args);
         String   error  = outContent.toString().trim();
         assertTrue(output.isEmpty());
-        assertTrue(error.startsWith("Invalid type: hello. Possible values are:"));
+        assertTrue(error.startsWith("Invalid type: hello. "));
     }
 
 

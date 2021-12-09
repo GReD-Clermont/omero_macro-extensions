@@ -52,6 +52,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
@@ -219,7 +220,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
         List<File> files = new ArrayList<>();
         try {
             files = client.getImage(imageId).download(client, path);
-        } catch (ServiceException | AccessException | OMEROServerError | ExecutionException e) {
+        } catch (ServiceException | AccessException | OMEROServerError | ExecutionException | NoSuchElementException e) {
             IJ.error("Could not download image: " + e.getMessage());
         }
         return files.stream().map(File::toString).collect(Collectors.joining(","));
@@ -466,7 +467,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                     IJ.error(INVALID + ": " + type + ". Possible values are: projects, datasets, images or tags.");
             }
         } catch (ServiceException | AccessException | OMEROServerError | ExecutionException e) {
-            IJ.error("Could not retrieve project name: " + e.getMessage());
+            IJ.error(String.format("Could not retrieve %s with name \"%s\": %s", type, name, e.getMessage()));
         }
         return results;
     }
@@ -648,12 +649,8 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
         String name = null;
 
         GenericObjectWrapper<?> object = getObject(type, id);
-        if (object instanceof ProjectWrapper) {
-            name = ((ProjectWrapper) object).getName();
-        } else if (object instanceof DatasetWrapper) {
-            name = ((DatasetWrapper) object).getName();
-        } else if (object instanceof ImageWrapper) {
-            name = ((ImageWrapper) object).getName();
+        if (object instanceof GenericRepositoryObjectWrapper<?>) {
+            name = ((GenericRepositoryObjectWrapper<?>) object).getName();
         } else if (object instanceof TagAnnotationWrapper) {
             name = ((TagAnnotationWrapper) object).getName();
         }
@@ -666,7 +663,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
         try {
             ImageWrapper image = client.getImage(id);
             imp = image.toImagePlus(client);
-        } catch (ServiceException | AccessException | ExecutionException e) {
+        } catch (ServiceException | AccessException | ExecutionException | NoSuchElementException e) {
             IJ.error("Could not retrieve image: " + e.getMessage());
         }
         return imp;
@@ -679,7 +676,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
             ImageWrapper image = client.getImage(id);
             rois = image.getROIs(client);
         } catch (ServiceException | AccessException | ExecutionException e) {
-            IJ.error("Could not retrieve image with ROIs: " + e.getMessage());
+            IJ.error("Could not retrieve ROIs: " + e.getMessage());
         }
 
         List<Roi> ijRois = ROIWrapper.toImageJ(rois, property);
