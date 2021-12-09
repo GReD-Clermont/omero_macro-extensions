@@ -310,7 +310,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
         try (PrintWriter stream = new PrintWriter(f)) {
             for (int i = 0; i < nColumns; i++) {
                 sb.append(table.getColumnName(i));
-                if (i != (nColumns - 1)) {
+                if (i != nColumns - 1) {
                     sb.append("\t");
                 }
             }
@@ -319,7 +319,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                 for (int j = 0; j < nColumns; j++) {
                     Object value = data[j][i];
                     sb.append(value);
-                    if (i != table.getRowCount() - 1) {
+                    if (j != nColumns - 1) {
                         sb.append("\t");
                     }
                 }

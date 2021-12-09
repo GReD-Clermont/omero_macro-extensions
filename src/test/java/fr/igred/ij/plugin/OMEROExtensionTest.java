@@ -354,11 +354,10 @@ class OMEROExtensionTest {
         rt1.incrementCounter();
         rt1.setLabel("test", 0);
         rt1.setValue("Size", 0, 25.0);
-        rt1.show("test");
 
         ResultsTable rt2 = new ResultsTable();
         rt2.incrementCounter();
-        rt2.setLabel("test", 0);
+        rt2.setLabel("test2", 0);
         rt2.setValue("Size", 0, 50.0);
 
         ext.addToTable("test_table", rt1, 1L, new ArrayList<>(0), null);
@@ -366,6 +365,19 @@ class OMEROExtensionTest {
 
         Object[] args2 = {"test_table", "dataset", 1.0d};
         ext.handleExtension("saveTable", args2);
+
+        File textFile = new File("./test.txt");
+        Object[] args3 = {"test_table", textFile.getCanonicalPath()};
+        ext.handleExtension("saveTableAsTXT", args3);
+        List<String> expected = Arrays.asList("Image\tLabel\tSize",
+                                              "omero.gateway.model.ImageData (id=1)\ttest\t25.0",
+                                              "omero.gateway.model.ImageData (id=1)\ttest2\t50.0");
+        List<String> actual = Files.readAllLines(textFile.toPath());
+        assertEquals(expected.size(), actual.size());
+        for (int i = 0; i < expected.size(); i++) {
+            assertEquals(expected.get(i), actual.get(i));
+        }
+        Files.deleteIfExists(textFile.toPath());
 
         Client client = new Client();
         client.connect("omero", 4064, "testUser", "password".toCharArray());
