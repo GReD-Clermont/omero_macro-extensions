@@ -367,9 +367,11 @@ class OMEROExtensionTest {
         ext.handleExtension("saveTable", args2);
 
         File textFile = new File("./test.txt");
-        Object[] args3 = {"test_table", textFile.getCanonicalPath()};
-        ext.handleExtension("saveTableAsTXT", args3);
-        List<String> expected = Arrays.asList("Image\tLabel\tSize", "1\ttest\t25.0", "1\ttest2\t50.0");
+        Object[] args3 = {"test_table", textFile.getCanonicalPath(), null};
+        ext.handleExtension("saveTableAsFile", args3);
+        List<String> expected = Arrays.asList("\"Image\",\"Label\",\"Size\"",
+                                              "\"1\",\"test\",\"25.0\"",
+                                              "\"1\",\"test2\",\"50.0\"");
         List<String> actual = Files.readAllLines(textFile.toPath());
         assertEquals(expected.size(), actual.size());
         for (int i = 0; i < expected.size(); i++) {

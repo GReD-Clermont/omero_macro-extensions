@@ -81,7 +81,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
             newDescriptor("addToTable", this, ARG_STRING,
                           ARG_STRING + ARG_OPTIONAL, ARG_NUMBER + ARG_OPTIONAL, ARG_STRING + ARG_OPTIONAL),
             newDescriptor("saveTable", this, ARG_STRING, ARG_STRING, ARG_NUMBER),
-            newDescriptor("saveTableAsTXT", this, ARG_STRING, ARG_STRING),
+            newDescriptor("saveTableAsFile", this, ARG_STRING, ARG_STRING, ARG_STRING + ARG_OPTIONAL),
             newDescriptor("clearTable", this, ARG_STRING),
             newDescriptor("importImage", this, ARG_NUMBER, ARG_STRING + ARG_OPTIONAL),
             newDescriptor("downloadImage", this, ARG_NUMBER, ARG_STRING),
@@ -301,21 +301,25 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     }
 
 
-    public void saveTableAsTXT(String tableName, String path) {
+    public void saveTableAsFile(String tableName, String path, String delim) {
         TableWrapper  table    = tables.get(tableName);
         Object[][]    data     = table.getData();
         int           nColumns = table.getColumnCount();
         StringBuilder sb       = new StringBuilder();
         File          f        = new File(path);
+
+        String sep = delim == null ? "\",\"" : String.format("\"%s\"", delim);
         try (PrintWriter stream = new PrintWriter(f)) {
+            sb.append("\"");
             for (int i = 0; i < nColumns; i++) {
                 sb.append(table.getColumnName(i));
                 if (i != nColumns - 1) {
-                    sb.append("\t");
+                    sb.append(sep);
                 }
             }
-            sb.append("\n");
+            sb.append("\"\n");
             for (int i = 0; i < table.getRowCount(); i++) {
+                sb.append("\"");
                 for (int j = 0; j < nColumns; j++) {
                     Object value = data[j][i];
                     if(value.getClass().getSimpleName().endsWith("Data")) {
@@ -323,10 +327,10 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                     }
                     sb.append(value);
                     if (j != nColumns - 1) {
-                        sb.append("\t");
+                        sb.append(sep);
                     }
                 }
-                sb.append("\n");
+                sb.append("\"\n");
             }
             stream.write(sb.toString());
         } catch (FileNotFoundException e) {
@@ -335,15 +339,15 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     }
 
 
-    public void saveTable(String name, String type, long id) {
+    public void saveTable(String tableName, String type, long id) {
         GenericRepositoryObjectWrapper<?> object = getRepositoryObject(type, id);
         if (object != null) {
-            TableWrapper table = tables.get(name);
+            TableWrapper table = tables.get(tableName);
             if (table != null) {
                 String timestamp = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date());
                 String newName;
-                if (name == null || name.equals("")) newName = timestamp + "_" + table.getName();
-                else newName = timestamp + "_" + name;
+                if (tableName == null || tableName.equals("")) newName = timestamp + "_" + table.getName();
+                else newName = timestamp + "_" + tableName;
                 table.setName(newName);
                 try {
                     object.addTable(client, table);
@@ -853,10 +857,11 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                 addToTable(tableName, rt, imageId, ijRois, property);
                 break;
 
-            case "saveTableAsTXT":
+            case "saveTableAsFile":
                 tableName = (String) args[0];
                 path = (String) args[1];
-                saveTableAsTXT(tableName, path);
+                String delimiter = (String) args[2];
+                saveTableAsFile(tableName, path, delimiter);
                 break;
 
             case "saveTable":

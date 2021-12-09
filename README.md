@@ -259,10 +259,10 @@ The table can then be saved to a project/dataset/image through *Ext.saveTable*:
 Ext.saveTable(tableName, 'dataset', datasetId);
 ```
 
-It can then be saved to a tab-separated text file through *Ext.saveTableAsTXT*:
+It can then be saved to a delimited text file through *Ext.saveTableAsFile* (default separator is ','):
 
 ```
-Ext.saveTableAsTXT(tableName, pathToTXT);
+Ext.saveTableAsFile(tableName, pathToFile, delimiter);
 ```
 
 ### Work as another user (sudo)
