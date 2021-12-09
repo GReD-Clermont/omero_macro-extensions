@@ -1,7 +1,6 @@
 package fr.igred.ij.plugin;
 
 
-import loci.common.DebugTools;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.BeforeTestExecutionCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -19,7 +18,7 @@ public class TestResultLogger implements TestWatcher, BeforeTestExecutionCallbac
     public static final String ANSI_YELLOW = "\u001B[33m";
     public static final String ANSI_BLUE   = "\u001B[34m";
 
-    private static final String FORMAT      = "[%-25s]\t%-40s\t%s (%.3f s)";
+    private static final String FORMAT = "[%-25s]\t%-40s\t%s (%.3f s)";
 
     private long start = System.currentTimeMillis();
 
@@ -34,7 +33,6 @@ public class TestResultLogger implements TestWatcher, BeforeTestExecutionCallbac
     @Override
     public void beforeAll(ExtensionContext context) {
         System.setProperty("java.util.logging.SimpleFormatter.format", "[%1$tF %1$tT] [%4$-7s] %5$s %n");
-        DebugTools.enableLogging("OFF");
         final String klass = context.getTestClass()
                                     .orElse(context.getRequiredTestClass())
                                     .getName();

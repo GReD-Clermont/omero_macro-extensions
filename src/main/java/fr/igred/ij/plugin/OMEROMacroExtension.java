@@ -318,6 +318,9 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
             for (int i = 0; i < table.getRowCount(); i++) {
                 for (int j = 0; j < nColumns; j++) {
                     Object value = data[j][i];
+                    if(value.getClass().getSimpleName().endsWith("Data")) {
+                        value = value.toString().replaceAll(".*\\(id=(\\d+)\\)", "$1");
+                    }
                     sb.append(value);
                     if (j != nColumns - 1) {
                         sb.append("\t");
