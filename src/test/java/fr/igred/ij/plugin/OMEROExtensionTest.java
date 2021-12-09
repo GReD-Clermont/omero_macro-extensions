@@ -34,14 +34,17 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 
@@ -267,7 +270,7 @@ class OMEROExtensionTest {
         roi.setImage(imp);
         overlay.add(roi);
         imp.setOverlay(overlay);
-        int savedROIs  = ext.saveROIs(imp, 1L, "");
+        int savedROIs = ext.saveROIs(imp, 1L, "");
         overlay.clear();
         int loadedROIs = ext.getROIs(imp, 1L, true, "");
 
@@ -298,6 +301,20 @@ class OMEROExtensionTest {
         Object[] args3 = {"image", "dataset", 2.0D};
         listIds = ext.handleExtension("list", args3);
         assertEquals("", listIds);
+    }
+
+
+    @Test
+    void testDownloadImage() throws IOException {
+        Object[]   args    = {1.0d, "."};
+        String     results = ext.handleExtension("downloadImage", args);
+        String[]   paths   = results.split(",");
+        List<File> files   = Arrays.stream(paths).map(File::new).collect(Collectors.toList());
+        assertEquals(2, paths.length);
+        assertTrue(files.get(0).exists());
+        assertTrue(files.get(1).exists());
+        Files.deleteIfExists(files.get(0).toPath());
+        Files.deleteIfExists(files.get(1).toPath());
     }
 
 
