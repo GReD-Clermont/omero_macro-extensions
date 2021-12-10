@@ -19,10 +19,13 @@ package fr.igred.ij.plugin;
 import fr.igred.omero.Client;
 import fr.igred.omero.annotations.TableWrapper;
 import ij.ImagePlus;
+import ij.gui.Overlay;
+import ij.gui.Roi;
 import ij.measure.ResultsTable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
@@ -31,14 +34,21 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
+import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 
+@ExtendWith(TestResultLogger.class)
 class OMEROExtensionTest {
 
     private OMEROMacroExtension ext;
@@ -58,6 +68,32 @@ class OMEROExtensionTest {
     }
 
 
+    @Test
+    void testSwitchGroup() {
+        Object[] args    = {4.0d};
+        Object[] args2   = {3.0d};
+        String   result  = ext.handleExtension("switchGroup", args);
+        String   result2 = ext.handleExtension("switchGroup", args2);
+        assertEquals(args[0], Double.parseDouble(result));
+        assertEquals(args2[0], Double.parseDouble(result2));
+    }
+
+
+    @ParameterizedTest
+    @CsvSource(delimiter = ';', value = {"testUser;2",
+                                         "all;-1",
+                                         "'';-1",
+                                         ";-1",})
+    void testListForUser(String user, double output) {
+        Object[] args    = {user};
+        String   result  = ext.handleExtension("listForUser", args);
+        Object[] args2   = {"projects", null, null};
+        String   result2 = ext.handleExtension("list", args2);
+        assertEquals(output, Double.parseDouble(result));
+        assertEquals("1,2", result2);
+    }
+
+
     @ParameterizedTest
     @CsvSource(delimiter = ';', value = {"list;projects;1,2",
                                          "list;project;1,2",
@@ -70,7 +106,7 @@ class OMEROExtensionTest {
     void testListAll(String extension, String type, String output) {
         Object[] args   = {type, null, null};
         String   result = ext.handleExtension(extension, args);
-        assertEquals(output, result);
+        assertEquals(output, result, String.format("\"%s\" failed for: %s", extension, type));
     }
 
 
@@ -86,7 +122,7 @@ class OMEROExtensionTest {
     void testListByName(String extension, String type, String name, String output) {
         Object[] args   = {type, name, null};
         String   result = ext.handleExtension(extension, args);
-        assertEquals(output, result);
+        assertEquals(output, result, String.format("\"%s\" failed for: %s,%s", extension, type, name));
     }
 
 
@@ -101,12 +137,14 @@ class OMEROExtensionTest {
                                          "list;project;tags;1.0;2",
                                          "list;datasets;tag;1.0;3",
                                          "list;dataset;tags;1.0;3",
+                                         "list;images;project;1.0;1,2,3",
+                                         "list;image;projects;1.0;1,2,3",
                                          "list;images;tag;1.0;1,2,4",
                                          "list;image;tags;1.0;1,2,4",})
     void testListFrom(String extension, String type, String parent, double id, String output) {
         Object[] args   = {type, parent, id};
         String   result = ext.handleExtension(extension, args);
-        assertEquals(output, result);
+        assertEquals(output, result, String.format("\"%s\" failed for: %s,%s,%f", extension, type, parent, id));
     }
 
 
@@ -122,7 +160,7 @@ class OMEROExtensionTest {
     void testGetName(String extension, String type, double id, String output) {
         Object[] args   = {type, id};
         String   result = ext.handleExtension(extension, args);
-        assertEquals(output, result);
+        assertEquals(output, result, String.format("\"%s\" failed for: %s,%f", extension, type, id));
     }
 
 
@@ -158,6 +196,31 @@ class OMEROExtensionTest {
         Object[] args3 = {"tag", id};
         ext.handleExtension("delete", args3);
         assertNotNull(id);
+    }
+
+
+    @ParameterizedTest
+    @CsvSource(delimiter = ';', value = {"tag;1.0;project;2.0",
+                                         "tag;1.0;dataset;3.0",
+                                         "dataset;3.0;project;2.0",
+                                         "image;1.0;dataset;1.0",})
+    void testUnlinkThenLink(String type1, double id1, String type2, double id2) {
+        Object[] listArgs = {type1, type2, id2};
+        Object[] args     = {type1, id1, type2, id2};
+
+        String res  = ext.handleExtension("list", listArgs);
+        int    size = res.isEmpty() ? 0 : res.split(",").length;
+
+        ext.handleExtension("unlink", args);
+        res = ext.handleExtension("list", listArgs);
+        int newSize = res.isEmpty() ? 0 : res.split(",").length;
+
+        ext.handleExtension("link", args);
+        res = ext.handleExtension("list", listArgs);
+        int checkSize = res.isEmpty() ? 0 : res.split(",").length;
+
+        assertEquals(size - 1, newSize, String.format("Unlinking failed for: %s,%f,%s,%f", type1, id1, type2, id2));
+        assertEquals(size, checkSize, String.format("Linking failed for: %s,%f,%s,%f", type1, id1, type2, id2));
     }
 
 
@@ -202,6 +265,24 @@ class OMEROExtensionTest {
 
 
     @Test
+    void testSaveAndGetROIs() {
+        ImagePlus imp     = ext.getImage(1L);
+        Overlay   overlay = new Overlay();
+        Roi       roi     = new Roi(25, 30, 70, 50);
+        roi.setImage(imp);
+        overlay.add(roi);
+        imp.setOverlay(overlay);
+        int savedROIs = ext.saveROIs(imp, 1L, "");
+        overlay.clear();
+        int loadedROIs = ext.getROIs(imp, 1L, true, "");
+
+        assertEquals(1, savedROIs);
+        assertEquals(1, loadedROIs);
+        assertEquals(1, imp.getOverlay().size());
+    }
+
+
+    @Test
     void testImportImage() throws IOException {
         String path = "./8bit-unsigned&pixelType=uint8&sizeZ=3&sizeC=5&sizeT=7&sizeX=512&sizeY=512.fake";
         File   f    = new File(path);
@@ -222,6 +303,21 @@ class OMEROExtensionTest {
         Object[] args3 = {"image", "dataset", 2.0D};
         listIds = ext.handleExtension("list", args3);
         assertEquals("", listIds);
+        Files.deleteIfExists(f.toPath());
+    }
+
+
+    @Test
+    void testDownloadImage() throws IOException {
+        Object[]   args    = {1.0d, "."};
+        String     results = ext.handleExtension("downloadImage", args);
+        String[]   paths   = results.split(",");
+        List<File> files   = Arrays.stream(paths).map(File::new).collect(Collectors.toList());
+        assertEquals(2, paths.length);
+        assertTrue(files.get(0).exists());
+        assertTrue(files.get(1).exists());
+        Files.deleteIfExists(files.get(0).toPath());
+        Files.deleteIfExists(files.get(1).toPath());
     }
 
 
@@ -258,11 +354,10 @@ class OMEROExtensionTest {
         rt1.incrementCounter();
         rt1.setLabel("test", 0);
         rt1.setValue("Size", 0, 25.0);
-        rt1.show("test");
 
         ResultsTable rt2 = new ResultsTable();
         rt2.incrementCounter();
-        rt2.setLabel("test", 0);
+        rt2.setLabel("test2", 0);
         rt2.setValue("Size", 0, 50.0);
 
         ext.addToTable("test_table", rt1, 1L, new ArrayList<>(0), null);
@@ -270,6 +365,19 @@ class OMEROExtensionTest {
 
         Object[] args2 = {"test_table", "dataset", 1.0d};
         ext.handleExtension("saveTable", args2);
+
+        File textFile = new File("./test.txt");
+        Object[] args3 = {"test_table", textFile.getCanonicalPath(), null};
+        ext.handleExtension("saveTableAsFile", args3);
+        List<String> expected = Arrays.asList("\"Image\",\"Label\",\"Size\"",
+                                              "\"1\",\"test\",\"25.0\"",
+                                              "\"1\",\"test2\",\"50.0\"");
+        List<String> actual = Files.readAllLines(textFile.toPath());
+        assertEquals(expected.size(), actual.size());
+        for (int i = 0; i < expected.size(); i++) {
+            assertEquals(expected.get(i), actual.get(i));
+        }
+        Files.deleteIfExists(textFile.toPath());
 
         Client client = new Client();
         client.connect("omero", 4064, "testUser", "password".toCharArray());

@@ -6,7 +6,9 @@ A plugin for ImageJ to provide macro extensions to access OMERO.
 
 ## How to install
 
-1. Install the [OMERO.insight plugin for Fiji](https://omero-guides.readthedocs.io/en/latest/fiji/docs/installation.html) (if you haven't already).
+1. Install
+   the [OMERO.insight plugin for Fiji](https://omero-guides.readthedocs.io/en/latest/fiji/docs/installation.html) (if
+   you haven't already).
 2. Download the JAR file for this [library](https://github.com/GReD-Clermont/simple-omero-client/releases/latest/).
 3. Download the JAR file ([for this plugin](https://github.com/GReD-Clermont/omero_macro-extensions/releases/latest/)).
 4. Place these JAR files in your plugins folder.
@@ -31,6 +33,12 @@ Then, switching group can be performed through:
 
 ```
 Ext.switchGroup(groupId);
+```
+
+You can also choose to only list objects for a given user (or all if username is empty or equal to "all"):
+
+```
+Ext.listForUser(username);
 ```
 
 When done, you can disconnect using:
@@ -165,12 +173,18 @@ Tags can be created with *Ext.createTag*:
 tagId = Ext.createTag(name, description);
 ```
 
-### Linking objects
+### Linking/unlinking objects
 
 Objects can be linked with *Ext.link*, e.g.:
 
 ```
 Ext.link("dataset", datasetId, "tag", tagId);
+```
+
+They can also be unlinked with *Ext.unlink*, e.g.:
+
+```
+Ext.unlink("dataset", datasetId, "tag", tagId);
 ```
 
 ### Deleting objects
@@ -189,13 +203,13 @@ Pixel intensities can be retrieved from images:
 imageplusID = Ext.getImage(imageIds[0]);
 ```
 
-ROIs from OMERO can also be added to the ROI manager (and the current image). ROIs composed of multiple shapes (eg
-3D/4D) will share the same values in the "ROI" and "ROI_ID" properties in ImageJ. These can be optionnally changed with
-the "property" parameter: local indices will be in "property" while OMERO IDs will be in "property + _ID". This is
-achieved through:
+ROIs from OMERO can also be added to the ROI manager or to the Overlay of the current image (boolean toOverlay). ROIs
+composed of multiple shapes (eg 3D/4D) will share the same values in the "ROI" and "ROI_ID" properties in ImageJ. These
+can be optionally changed with the "property" parameter: local indices will be in "property" while OMERO IDs will be
+in "property + _ID". This is achieved through:
 
 ```
-nIJROIs = Ext.getROIs(imageIds[0], property);
+nIJROIs = Ext.getROIs(imageIds[0], toOverlay, property);
 ```
 
 Conversely, ImageJ ROIs can also be saved to OMERO (the property is used to group ImageJ shapes into a single 3D/4D ROI
@@ -245,10 +259,10 @@ The table can then be saved to a project/dataset/image through *Ext.saveTable*:
 Ext.saveTable(tableName, 'dataset', datasetId);
 ```
 
-It can then be saved to a tab-separated text file through *Ext.saveTableAsTXT*:
+It can then be saved to a delimited text file through *Ext.saveTableAsFile* (default separator is ','):
 
 ```
-Ext.saveTableAsTXT(tableName, pathToTXT);
+Ext.saveTableAsFile(tableName, pathToFile, delimiter);
 ```
 
 ### Work as another user (sudo)
