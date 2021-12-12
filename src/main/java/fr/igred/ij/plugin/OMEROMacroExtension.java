@@ -41,19 +41,21 @@ import ij.plugin.PlugIn;
 import ij.plugin.frame.RoiManager;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.text.SimpleDateFormat;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ExecutionException;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static ij.macro.ExtensionDescriptor.newDescriptor;
@@ -66,6 +68,8 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     private static final String IMAGE   = "image";
     private static final String TAG     = "tag";
     private static final String INVALID = "Invalid type";
+
+    private static final Pattern ID_IN_NAME = Pattern.compile(".*\\(id=(\\d+)\\)");
 
     private final ExtensionDescriptor[] extensions = {
             newDescriptor("connectToOMERO", this, ARG_STRING, ARG_NUMBER, ARG_STRING, ARG_STRING),
@@ -97,13 +101,13 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
 
     private final Map<String, TableWrapper> tables = new HashMap<>(1);
 
-    private Client client = new Client();
-    private Client switched;
+    private Client client   = new Client();
+    private Client switched = null;
 
     private ExperimenterWrapper user = null;
 
 
-    private static <T extends GenericObjectWrapper<?>> String listToIDs(List<T> list) {
+    private static <T extends GenericObjectWrapper<?>> String listToIDs(Collection<T> list) {
         return list.stream()
                    .mapToLong(T::getId)
                    .mapToObj(String::valueOf)
@@ -195,7 +199,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
 
     public long setUser(String userName) {
         long id = -1L;
-        if (userName != null && !userName.trim().isEmpty() && !userName.equalsIgnoreCase("all")) {
+        if (userName != null && !userName.trim().isEmpty() && !"all".equalsIgnoreCase(userName)) {
             if (user != null) id = user.getId();
             ExperimenterWrapper newUser = user;
             try {
@@ -217,7 +221,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
 
 
     public String downloadImage(long imageId, String path) {
-        List<File> files = new ArrayList<>();
+        List<File> files = new ArrayList<>(0);
         try {
             files = client.getImage(imageId).download(client, path);
         } catch (ServiceException | AccessException | OMEROServerError | ExecutionException | NoSuchElementException e) {
@@ -228,21 +232,24 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
 
 
     public String importImage(long datasetId, String path) {
+        String imagePath = path;
         if (path == null) {
             ImagePlus imp = IJ.getImage();
-            path = IJ.getDir("temp") + imp.getTitle() + ".tif";
-            IJ.save(imp, path);
+            imagePath = IJ.getDir("temp") + imp.getTitle() + ".tif";
+            IJ.save(imp, imagePath);
         }
-        List<Long> imageIds = new ArrayList<>();
+        List<Long> imageIds = new ArrayList<>(0);
         try {
-            imageIds = client.getDataset(datasetId).importImage(client, path);
-        } catch (Exception e) {
+            imageIds = client.getDataset(datasetId).importImage(client, imagePath);
+        } catch (ServiceException | AccessException | ExecutionException | OMEROServerError | NoSuchElementException e) {
             IJ.error("Could not import image: " + e.getMessage());
         }
-        try {
-            Files.deleteIfExists(new File(path).toPath());
-        } catch (IOException e) {
-            IJ.error("Could not delete temp image: " + e.getMessage());
+        if (path == null) {
+            try {
+                Files.deleteIfExists(new File(imagePath).toPath());
+            } catch (IOException e) {
+                IJ.error("Could not delete temp image: " + e.getMessage());
+            }
         }
         return imageIds.stream().map(String::valueOf).collect(Collectors.joining(","));
     }
@@ -301,15 +308,15 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     }
 
 
-    public void saveTableAsFile(String tableName, String path, String delim) {
+    public void saveTableAsFile(String tableName, String path, String delimiter) {
         TableWrapper  table    = tables.get(tableName);
         Object[][]    data     = table.getData();
         int           nColumns = table.getColumnCount();
-        StringBuilder sb       = new StringBuilder();
+        StringBuilder sb       = new StringBuilder(10 * table.getColumnCount() * table.getRowCount());
         File          f        = new File(path);
 
-        String sep = delim == null ? "\",\"" : String.format("\"%s\"", delim);
-        try (PrintWriter stream = new PrintWriter(f)) {
+        String sep = delimiter == null ? "\",\"" : String.format("\"%s\"", delimiter);
+        try (PrintWriter stream = new PrintWriter(f, StandardCharsets.UTF_8.name())) {
             sb.append("\"");
             for (int i = 0; i < nColumns; i++) {
                 sb.append(table.getColumnName(i));
@@ -317,23 +324,23 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                     sb.append(sep);
                 }
             }
-            sb.append("\"\n");
+            sb.append(String.format("\"%n"));
             for (int i = 0; i < table.getRowCount(); i++) {
                 sb.append("\"");
                 for (int j = 0; j < nColumns; j++) {
                     Object value = data[j][i];
-                    if(value.getClass().getSimpleName().endsWith("Data")) {
-                        value = value.toString().replaceAll(".*\\(id=(\\d+)\\)", "$1");
+                    if (value.getClass().getSimpleName().endsWith("Data")) {
+                        value = ID_IN_NAME.matcher(value.toString()).replaceAll("$1");
                     }
                     sb.append(value);
                     if (j != nColumns - 1) {
                         sb.append(sep);
                     }
                 }
-                sb.append("\"\n");
+                sb.append(String.format("\"%n"));
             }
             stream.write(sb.toString());
-        } catch (FileNotFoundException e) {
+        } catch (IOException e) {
             IJ.error("Could not create table file: ", e.getMessage());
         }
     }
@@ -344,9 +351,9 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
         if (object != null) {
             TableWrapper table = tables.get(tableName);
             if (table != null) {
-                String timestamp = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date());
+                String timestamp = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss").format(ZonedDateTime.now());
                 String newName;
-                if (tableName == null || tableName.equals("")) newName = timestamp + "_" + table.getName();
+                if (tableName == null || tableName.isEmpty()) newName = timestamp + "_" + table.getName();
                 else newName = timestamp + "_" + tableName;
                 table.setName(newName);
                 try {
@@ -557,10 +564,10 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     }
 
 
-    public void sudo(String user) {
+    public void sudo(String username) {
         switched = client;
         try {
-            client = switched.sudoGetUser(user);
+            client = switched.sudoGetUser(username);
         } catch (ServiceException | AccessException | ExecutionException | NullPointerException e) {
             IJ.error("Could not switch user: " + e.getMessage());
         }
@@ -678,7 +685,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
 
 
     public int getROIs(ImagePlus imp, long id, boolean toOverlay, String property) {
-        List<ROIWrapper> rois = new ArrayList<>();
+        List<ROIWrapper> rois = new ArrayList<>(0);
         try {
             ImageWrapper image = client.getImage(id);
             rois = image.getROIs(client);
@@ -780,7 +787,12 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
 
     public String handleExtension(String name, Object[] args) {
         long   id;
+        long   id1;
+        long   id2;
         String type;
+        String type1;
+        String type2;
+        String property;
         String tableName;
         String path;
         String results = null;
@@ -848,7 +860,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                 tableName = (String) args[0];
                 String resultsName = (String) args[1];
                 Long imageId = doubleToLong((Double) args[2]);
-                String property = (String) args[3];
+                property = (String) args[3];
 
                 ResultsTable rt = getTable(resultsName);
                 RoiManager rm = RoiManager.getRoiManager();
@@ -898,10 +910,10 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                 break;
 
             case "link":
-                String type1 = (String) args[0];
-                long id1 = ((Double) args[1]).longValue();
-                String type2 = (String) args[2];
-                long id2 = ((Double) args[3]).longValue();
+                type1 = (String) args[0];
+                id1 = ((Double) args[1]).longValue();
+                type2 = (String) args[2];
+                id2 = ((Double) args[3]).longValue();
                 link(type1, id1, type2, id2);
                 break;
 
