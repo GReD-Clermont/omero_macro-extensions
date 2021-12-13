@@ -35,10 +35,10 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Random;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -56,8 +56,9 @@ class OMEROExtensionTest {
 
     @BeforeEach
     public void setUp() {
+        final double port = 4064;
         ext = new OMEROMacroExtension();
-        Object[] args = {"omero", 4064d, "testUser", "password"};
+        Object[] args = {"omero", port, "testUser", "password"};
         ext.handleExtension("connectToOMERO", args);
     }
 
@@ -232,14 +233,16 @@ class OMEROExtensionTest {
                                          "images;1.0;./test5.txt",
                                          "image;1.0;./test6.txt",})
     void testAddAndDeleteFile(String type, double id, String filename) throws Exception {
+        final int size = 2 * 262144 + 20;
+
         File file = new File(filename);
         if (!file.createNewFile())
             System.err.println("\"" + file.getCanonicalPath() + "\" could not be created.");
 
-        byte[] array = new byte[2 * 262144 + 20];
-        new Random().nextBytes(array);
+        byte[] array = new byte[size];
+        new SecureRandom().nextBytes(array);
         String generatedString = new String(array, StandardCharsets.UTF_8);
-        try (PrintStream out = new PrintStream(new FileOutputStream(filename))) {
+        try (PrintStream out = new PrintStream(new FileOutputStream(filename), false, StandardCharsets.UTF_8.name())) {
             out.print(generatedString);
         }
 
@@ -366,8 +369,8 @@ class OMEROExtensionTest {
         Object[] args2 = {"test_table", "dataset", 1.0d};
         ext.handleExtension("saveTable", args2);
 
-        File textFile = new File("./test.txt");
-        Object[] args3 = {"test_table", textFile.getCanonicalPath(), null};
+        File     textFile = new File("./test.txt");
+        Object[] args3    = {"test_table", textFile.getCanonicalPath(), null};
         ext.handleExtension("saveTableAsFile", args3);
         List<String> expected = Arrays.asList("\"Image\",\"Label\",\"Size\"",
                                               "\"1\",\"test\",\"25.0\"",

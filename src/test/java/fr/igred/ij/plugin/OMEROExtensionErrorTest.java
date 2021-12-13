@@ -138,7 +138,7 @@ class OMEROExtensionErrorTest {
     void testSudoError() {
         Object[] args = {"roger"};
         ext.handleExtension("sudo", args);
-        String expected = "Could not switch user: null";
+        String expected = "Could not switch user: User not found: roger";
         assertEquals(expected, outContent.toString().trim());
     }
 

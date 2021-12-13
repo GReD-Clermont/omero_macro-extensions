@@ -42,8 +42,6 @@ import ij.plugin.frame.RoiManager;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -55,7 +53,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ExecutionException;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static ij.macro.ExtensionDescriptor.newDescriptor;
@@ -68,8 +65,6 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     private static final String IMAGE   = "image";
     private static final String TAG     = "tag";
     private static final String INVALID = "Invalid type";
-
-    private static final Pattern ID_IN_NAME = Pattern.compile(".*\\(id=(\\d+)\\)");
 
     private final ExtensionDescriptor[] extensions = {
             newDescriptor("connectToOMERO", this, ARG_STRING, ARG_NUMBER, ARG_STRING, ARG_STRING),
@@ -201,15 +196,13 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
         long id = -1L;
         if (userName != null && !userName.trim().isEmpty() && !"all".equalsIgnoreCase(userName)) {
             if (user != null) id = user.getId();
-            ExperimenterWrapper newUser = user;
+            ExperimenterWrapper newUser = null;
             try {
                 newUser = client.getUser(userName);
-            } catch (ExecutionException | ServiceException | AccessException e) {
-                IJ.error("Could not retrieve user: " + userName);
-            }
-            if (newUser == null) {
+            } catch (ExecutionException | ServiceException | AccessException | NoSuchElementException e) {
                 IJ.log("Could not retrieve user: " + userName);
-            } else {
+            }
+            if (newUser != null) {
                 user = newUser;
                 id = user.getId();
             }
@@ -308,38 +301,12 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     }
 
 
-    public void saveTableAsFile(String tableName, String path, String delimiter) {
-        TableWrapper  table    = tables.get(tableName);
-        Object[][]    data     = table.getData();
-        int           nColumns = table.getColumnCount();
-        StringBuilder sb       = new StringBuilder(10 * table.getColumnCount() * table.getRowCount());
-        File          f        = new File(path);
+    public void saveTableAsFile(String tableName, String path, CharSequence delimiter) {
+        TableWrapper table = tables.get(tableName);
 
-        String sep = delimiter == null ? "\",\"" : String.format("\"%s\"", delimiter);
-        try (PrintWriter stream = new PrintWriter(f, StandardCharsets.UTF_8.name())) {
-            sb.append("\"");
-            for (int i = 0; i < nColumns; i++) {
-                sb.append(table.getColumnName(i));
-                if (i != nColumns - 1) {
-                    sb.append(sep);
-                }
-            }
-            sb.append(String.format("\"%n"));
-            for (int i = 0; i < table.getRowCount(); i++) {
-                sb.append("\"");
-                for (int j = 0; j < nColumns; j++) {
-                    Object value = data[j][i];
-                    if (value.getClass().getSimpleName().endsWith("Data")) {
-                        value = ID_IN_NAME.matcher(value.toString()).replaceAll("$1");
-                    }
-                    sb.append(value);
-                    if (j != nColumns - 1) {
-                        sb.append(sep);
-                    }
-                }
-                sb.append(String.format("\"%n"));
-            }
-            stream.write(sb.toString());
+        char sep = delimiter == null || delimiter.length() != 1 ? ',' : delimiter.charAt(0);
+        try {
+            table.saveAs(path, sep);
         } catch (IOException e) {
             IJ.error("Could not create table file: ", e.getMessage());
         }
@@ -568,8 +535,9 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
         switched = client;
         try {
             client = switched.sudoGetUser(username);
-        } catch (ServiceException | AccessException | ExecutionException | NullPointerException e) {
+        } catch (ServiceException | AccessException | ExecutionException | NoSuchElementException e) {
             IJ.error("Could not switch user: " + e.getMessage());
+            switched = null;
         }
     }
 
@@ -872,7 +840,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
             case "saveTableAsFile":
                 tableName = (String) args[0];
                 path = (String) args[1];
-                String delimiter = (String) args[2];
+                CharSequence delimiter = (CharSequence) args[2];
                 saveTableAsFile(tableName, path, delimiter);
                 break;
 
