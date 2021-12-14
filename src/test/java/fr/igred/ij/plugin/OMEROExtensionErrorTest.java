@@ -48,8 +48,9 @@ class OMEROExtensionErrorTest {
 
     @BeforeEach
     public void setUp() {
+        final double port = 4064;
         ext = new OMEROMacroExtension();
-        Object[] args = {"omero", 4064d, "testUser", "password"};
+        Object[] args = {"omero", port, "testUser", "password"};
         ext.handleExtension("connectToOMERO", args);
         System.setOut(new PrintStream(outContent));
         System.setErr(new PrintStream(errContent));
@@ -82,8 +83,9 @@ class OMEROExtensionErrorTest {
 
     @Test
     void testConnectionError() {
+        final double port = 4064;
         ext.handleExtension("disconnect", null);
-        Object[] args = {"omero", 4064d, "omero", "password"};
+        Object[] args = {"omero", port, "omero", "password"};
         ext.handleExtension("connectToOMERO", args);
         String expected = "Could not connect: Cannot connect to OMERO";
         assertEquals(expected, outContent.toString().trim());
@@ -138,7 +140,7 @@ class OMEROExtensionErrorTest {
     void testSudoError() {
         Object[] args = {"roger"};
         ext.handleExtension("sudo", args);
-        String expected = "Could not switch user: null";
+        String expected = "Could not switch user: User not found: roger";
         assertEquals(expected, outContent.toString().trim());
     }
 
@@ -153,7 +155,8 @@ class OMEROExtensionErrorTest {
 
     @Test
     void testListInvalidArgs() {
-        Object[] args = {"dataset", null, 2.0};
+        final double datasetId = 2;
+        Object[] args = {"dataset", null, datasetId};
         ext.handleExtension("list", args);
         String expected = "Second argument should not be null.";
         assertEquals(expected, outContent.toString().trim());
@@ -180,7 +183,7 @@ class OMEROExtensionErrorTest {
     @ParameterizedTest
     @ValueSource(strings = {"link", "unlink"})
     void testLinkUnlinkInvalidType(String function) {
-        Object[] args = {"tag", 2.0, "hello", 2.0};
+        Object[] args = {"tag", 1.0, "hello", 1.0};
         ext.handleExtension(function, args);
         String expected = "Invalid type: hello.";
         assertEquals(expected, outContent.toString().trim());
@@ -190,7 +193,7 @@ class OMEROExtensionErrorTest {
     @ParameterizedTest
     @ValueSource(strings = {"link", "unlink"})
     void testCannotLinkOrUnlink(String function) {
-        Object[] args = {"hello", 2.0, "world", 2.0};
+        Object[] args = {"hello", 1.0, "world", 1.0};
         ext.handleExtension(function, args);
         String expected = String.format("Cannot %s hello and world", function);
         assertEquals(expected, outContent.toString().trim());

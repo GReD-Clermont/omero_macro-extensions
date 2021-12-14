@@ -35,10 +35,10 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Random;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -56,8 +56,9 @@ class OMEROExtensionTest {
 
     @BeforeEach
     public void setUp() {
+        final double port = 4064;
         ext = new OMEROMacroExtension();
-        Object[] args = {"omero", 4064d, "testUser", "password"};
+        Object[] args = {"omero", port, "testUser", "password"};
         ext.handleExtension("connectToOMERO", args);
     }
 
@@ -70,12 +71,14 @@ class OMEROExtensionTest {
 
     @Test
     void testSwitchGroup() {
-        Object[] args    = {4.0d};
-        Object[] args2   = {3.0d};
-        String   result  = ext.handleExtension("switchGroup", args);
-        String   result2 = ext.handleExtension("switchGroup", args2);
-        assertEquals(args[0], Double.parseDouble(result));
-        assertEquals(args2[0], Double.parseDouble(result2));
+        final double target  = 4;
+        final double initial = 3;
+        Object[]     args    = {target};
+        Object[]     args2   = {initial};
+        String       result  = ext.handleExtension("switchGroup", args);
+        String       result2 = ext.handleExtension("switchGroup", args2);
+        assertEquals(target, Double.parseDouble(result));
+        assertEquals(initial, Double.parseDouble(result2));
     }
 
 
@@ -188,10 +191,11 @@ class OMEROExtensionTest {
 
     @Test
     void testCreateAndLinkTag() {
-        Object[] args   = {"Project tag", "tag attached to a project"};
-        String   result = ext.handleExtension("createTag", args);
-        Double   id     = Double.parseDouble(result);
-        Object[] args2  = {"tag", id, "project", 2.0};
+        final double projectId = 2;
+        Object[]     args      = {"Project tag", "tag attached to a project"};
+        String       result    = ext.handleExtension("createTag", args);
+        Double       id        = Double.parseDouble(result);
+        Object[]     args2     = {"tag", id, "project", projectId};
         ext.handleExtension("link", args2);
         Object[] args3 = {"tag", id};
         ext.handleExtension("delete", args3);
@@ -212,15 +216,15 @@ class OMEROExtensionTest {
         int    size = res.isEmpty() ? 0 : res.split(",").length;
 
         ext.handleExtension("unlink", args);
-        res = ext.handleExtension("list", listArgs);
-        int newSize = res.isEmpty() ? 0 : res.split(",").length;
+        String res2  = ext.handleExtension("list", listArgs);
+        int    size2 = res2.isEmpty() ? 0 : res2.split(",").length;
 
         ext.handleExtension("link", args);
-        res = ext.handleExtension("list", listArgs);
-        int checkSize = res.isEmpty() ? 0 : res.split(",").length;
+        String res3  = ext.handleExtension("list", listArgs);
+        int    size3 = res3.isEmpty() ? 0 : res3.split(",").length;
 
-        assertEquals(size - 1, newSize, String.format("Unlinking failed for: %s,%f,%s,%f", type1, id1, type2, id2));
-        assertEquals(size, checkSize, String.format("Linking failed for: %s,%f,%s,%f", type1, id1, type2, id2));
+        assertEquals(size - 1, size2, String.format("Unlinking failed for: %s,%f,%s,%f", type1, id1, type2, id2));
+        assertEquals(size, size3, String.format("Linking failed for: %s,%f,%s,%f", type1, id1, type2, id2));
     }
 
 
@@ -232,14 +236,16 @@ class OMEROExtensionTest {
                                          "images;1.0;./test5.txt",
                                          "image;1.0;./test6.txt",})
     void testAddAndDeleteFile(String type, double id, String filename) throws Exception {
+        final int size = 2 * 262144 + 20;
+
         File file = new File(filename);
         if (!file.createNewFile())
             System.err.println("\"" + file.getCanonicalPath() + "\" could not be created.");
 
-        byte[] array = new byte[2 * 262144 + 20];
-        new Random().nextBytes(array);
+        byte[] array = new byte[size];
+        new SecureRandom().nextBytes(array);
         String generatedString = new String(array, StandardCharsets.UTF_8);
-        try (PrintStream out = new PrintStream(new FileOutputStream(filename))) {
+        try (PrintStream out = new PrintStream(new FileOutputStream(filename), false, StandardCharsets.UTF_8.name())) {
             out.print(generatedString);
         }
 
@@ -258,9 +264,10 @@ class OMEROExtensionTest {
 
     @Test
     void testGetImage() {
-        ImagePlus imp = ext.getImage(1L);
-        assertEquals(512, imp.getWidth());
-        assertEquals(512, imp.getHeight());
+        final int size = 512;
+        ImagePlus imp  = ext.getImage(1L);
+        assertEquals(size, imp.getWidth());
+        assertEquals(size, imp.getHeight());
     }
 
 
@@ -300,9 +307,9 @@ class OMEROExtensionTest {
         Object[] args2 = {"Image", (double) ids[0]};
         ext.handleExtension("delete", args2);
 
-        Object[] args3 = {"image", "dataset", 2.0D};
-        listIds = ext.handleExtension("list", args3);
-        assertEquals("", listIds);
+        Object[] args3    = {"image", "dataset", 2.0D};
+        String   listIds2 = ext.handleExtension("list", args3);
+        assertEquals("", listIds2);
         Files.deleteIfExists(f.toPath());
     }
 
@@ -323,9 +330,10 @@ class OMEROExtensionTest {
 
     @Test
     void testSudo() {
+        final double port = 4064;
         ext.handleExtension("disconnect", null);
 
-        Object[] args = {"omero", 4064d, "root", "omero"};
+        Object[] args = {"omero", port, "root", "omero"};
         ext.handleExtension("connectToOMERO", args);
 
         Object[] args2 = {"testUser"};
@@ -366,8 +374,8 @@ class OMEROExtensionTest {
         Object[] args2 = {"test_table", "dataset", 1.0d};
         ext.handleExtension("saveTable", args2);
 
-        File textFile = new File("./test.txt");
-        Object[] args3 = {"test_table", textFile.getCanonicalPath(), null};
+        File     textFile = new File("./test.txt");
+        Object[] args3    = {"test_table", textFile.getCanonicalPath(), null};
         ext.handleExtension("saveTableAsFile", args3);
         List<String> expected = Arrays.asList("\"Image\",\"Label\",\"Size\"",
                                               "\"1\",\"test\",\"25.0\"",
