@@ -71,12 +71,14 @@ class OMEROExtensionTest {
 
     @Test
     void testSwitchGroup() {
-        Object[] args    = {4.0d};
-        Object[] args2   = {3.0d};
-        String   result  = ext.handleExtension("switchGroup", args);
-        String   result2 = ext.handleExtension("switchGroup", args2);
-        assertEquals(args[0], Double.parseDouble(result));
-        assertEquals(args2[0], Double.parseDouble(result2));
+        final double target  = 4;
+        final double initial = 3;
+        Object[]     args    = {target};
+        Object[]     args2   = {initial};
+        String       result  = ext.handleExtension("switchGroup", args);
+        String       result2 = ext.handleExtension("switchGroup", args2);
+        assertEquals(target, Double.parseDouble(result));
+        assertEquals(initial, Double.parseDouble(result2));
     }
 
 
@@ -189,10 +191,11 @@ class OMEROExtensionTest {
 
     @Test
     void testCreateAndLinkTag() {
-        Object[] args   = {"Project tag", "tag attached to a project"};
-        String   result = ext.handleExtension("createTag", args);
-        Double   id     = Double.parseDouble(result);
-        Object[] args2  = {"tag", id, "project", 2.0};
+        final double projectId = 2;
+        Object[]     args      = {"Project tag", "tag attached to a project"};
+        String       result    = ext.handleExtension("createTag", args);
+        Double       id        = Double.parseDouble(result);
+        Object[]     args2     = {"tag", id, "project", projectId};
         ext.handleExtension("link", args2);
         Object[] args3 = {"tag", id};
         ext.handleExtension("delete", args3);
@@ -213,15 +216,15 @@ class OMEROExtensionTest {
         int    size = res.isEmpty() ? 0 : res.split(",").length;
 
         ext.handleExtension("unlink", args);
-        res = ext.handleExtension("list", listArgs);
-        int newSize = res.isEmpty() ? 0 : res.split(",").length;
+        String res2  = ext.handleExtension("list", listArgs);
+        int    size2 = res2.isEmpty() ? 0 : res2.split(",").length;
 
         ext.handleExtension("link", args);
-        res = ext.handleExtension("list", listArgs);
-        int checkSize = res.isEmpty() ? 0 : res.split(",").length;
+        String res3  = ext.handleExtension("list", listArgs);
+        int    size3 = res3.isEmpty() ? 0 : res3.split(",").length;
 
-        assertEquals(size - 1, newSize, String.format("Unlinking failed for: %s,%f,%s,%f", type1, id1, type2, id2));
-        assertEquals(size, checkSize, String.format("Linking failed for: %s,%f,%s,%f", type1, id1, type2, id2));
+        assertEquals(size - 1, size2, String.format("Unlinking failed for: %s,%f,%s,%f", type1, id1, type2, id2));
+        assertEquals(size, size3, String.format("Linking failed for: %s,%f,%s,%f", type1, id1, type2, id2));
     }
 
 
@@ -261,9 +264,10 @@ class OMEROExtensionTest {
 
     @Test
     void testGetImage() {
-        ImagePlus imp = ext.getImage(1L);
-        assertEquals(512, imp.getWidth());
-        assertEquals(512, imp.getHeight());
+        final int size = 512;
+        ImagePlus imp  = ext.getImage(1L);
+        assertEquals(size, imp.getWidth());
+        assertEquals(size, imp.getHeight());
     }
 
 
@@ -303,9 +307,9 @@ class OMEROExtensionTest {
         Object[] args2 = {"Image", (double) ids[0]};
         ext.handleExtension("delete", args2);
 
-        Object[] args3 = {"image", "dataset", 2.0D};
-        listIds = ext.handleExtension("list", args3);
-        assertEquals("", listIds);
+        Object[] args3    = {"image", "dataset", 2.0D};
+        String   listIds2 = ext.handleExtension("list", args3);
+        assertEquals("", listIds2);
         Files.deleteIfExists(f.toPath());
     }
 
@@ -326,9 +330,10 @@ class OMEROExtensionTest {
 
     @Test
     void testSudo() {
+        final double port = 4064;
         ext.handleExtension("disconnect", null);
 
-        Object[] args = {"omero", 4064d, "root", "omero"};
+        Object[] args = {"omero", port, "root", "omero"};
         ext.handleExtension("connectToOMERO", args);
 
         Object[] args2 = {"testUser"};

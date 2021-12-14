@@ -102,6 +102,14 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     private ExperimenterWrapper user = null;
 
 
+    /**
+     * Converts a list of GenericObjectWrappers to a comma-delimited list of IDs.
+     *
+     * @param list The objects list.
+     * @param <T>  The type of objects.
+     *
+     * @return A string containing the corresponding IDs, separated by commas.
+     */
     private static <T extends GenericObjectWrapper<?>> String listToIDs(Collection<T> list) {
         return list.stream()
                    .mapToLong(T::getId)
@@ -110,6 +118,13 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     }
 
 
+    /**
+     * Makes sure the requested type is singular and lower case.
+     *
+     * @param type The type.
+     *
+     * @return The corrected type.
+     */
     private static String singularType(String type) {
         String singular = type.toLowerCase();
         int    length   = singular.length();
@@ -120,24 +135,53 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     }
 
 
+    /**
+     * Converts a Double to a Long.
+     *
+     * @param d The Double.
+     *
+     * @return The corresponding Long.
+     */
     private static Long doubleToLong(Double d) {
-        if (d != null) return d.longValue();
-        else return null;
+        return d != null ? d.longValue() : null;
     }
 
 
+    /**
+     * Gets the results table with the specified name, or the active table if null.
+     *
+     * @param resultsName The name of the ResultsTable.
+     *
+     * @return The corresponding ResultsTable.
+     */
     private static ResultsTable getTable(String resultsName) {
         if (resultsName == null) return ResultsTable.getResultsTable();
         else return ResultsTable.getResultsTable(resultsName);
     }
 
 
+    /**
+     * Filters the objects list to only keep objects from the set user.
+     *
+     * @param list The objects list.
+     * @param <T>  The type of objects.
+     *
+     * @return The filtered list.
+     */
     private <T extends GenericObjectWrapper<?>> List<T> filterUser(List<T> list) {
         if (user == null) return list;
         else return list.stream().filter(o -> o.getOwner().getId() == user.getId()).collect(Collectors.toList());
     }
 
 
+    /**
+     * Retrieves the object of the specified type with the specified ID.
+     *
+     * @param type The type of object.
+     * @param id   The object ID.
+     *
+     * @return The object.
+     */
     private GenericObjectWrapper<?> getObject(String type, long id) {
         String singularType = singularType(type);
 
@@ -155,6 +199,14 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     }
 
 
+    /**
+     * Retrieves the repository object of the specified type with the specified ID.
+     *
+     * @param type The type of object.
+     * @param id   The object ID.
+     *
+     * @return The object.
+     */
     private GenericRepositoryObjectWrapper<?> getRepositoryObject(String type, long id) {
         String singularType = singularType(type);
 
@@ -180,6 +232,16 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     }
 
 
+    /**
+     * Connects the client to OMERO.
+     *
+     * @param host     The host name.
+     * @param port     The port.
+     * @param username The username.
+     * @param password The password.
+     *
+     * @return True if connected, false otherwise.
+     */
     public boolean connect(String host, int port, String username, String password) {
         boolean connected = false;
         try {
@@ -192,6 +254,13 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     }
 
 
+    /**
+     * Sets the user whose objects should be listed with the "list" commands.
+     *
+     * @param userName The username. Null, empty and "all" removes the filter.
+     *
+     * @return The user ID if set, -1 otherwise.
+     */
     public long setUser(String userName) {
         long id = -1L;
         if (userName != null && !userName.trim().isEmpty() && !"all".equalsIgnoreCase(userName)) {
@@ -213,6 +282,14 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     }
 
 
+    /**
+     * Downloads the specified image.
+     *
+     * @param imageId The image ID.
+     * @param path    The path where the file(s) should be downloaded.
+     *
+     * @return The file path. If multiple files were saved, they are comma-delimited.
+     */
     public String downloadImage(long imageId, String path) {
         List<File> files = new ArrayList<>(0);
         try {
@@ -224,6 +301,14 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     }
 
 
+    /**
+     * Imports the specified image file to the desired dataset.
+     *
+     * @param datasetId The dataset ID.
+     * @param path      The path to the image file.
+     *
+     * @return The list of imported IDs, separated by commas.
+     */
     public String importImage(long datasetId, String path) {
         String imagePath = path;
         if (path == null) {
@@ -248,6 +333,15 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     }
 
 
+    /**
+     * Adds a file to an object.
+     *
+     * @param type The object type.
+     * @param id   The object ID.
+     * @param path The path to the file.
+     *
+     * @return The uploaded file ID.
+     */
     public long addFile(String type, long id, String path) {
         long fileId = -1;
 
@@ -268,6 +362,11 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     }
 
 
+    /**
+     * Deletes the file with the specified ID from OMERO.
+     *
+     * @param fileId The file ID.
+     */
     public void deleteFile(long fileId) {
         try {
             client.deleteFile(fileId);
@@ -280,6 +379,15 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     }
 
 
+    /**
+     * Adds the content of a ResultsTable (for an image) to the table with the specified name.
+     *
+     * @param tableName The table name.
+     * @param results   The ResultsTable.
+     * @param imageId   The image ID (can be null).
+     * @param ijRois    The list of ImageJ ROIs.
+     * @param property  The ROI property to group shapes.
+     */
     public void addToTable(String tableName, ResultsTable results, Long imageId, List<Roi> ijRois, String property) {
         TableWrapper table = tables.get(tableName);
 
@@ -301,6 +409,13 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     }
 
 
+    /**
+     * Saves the specified table as a file, using the specified delimiter.
+     *
+     * @param tableName The table name.
+     * @param path      The path to the file.
+     * @param delimiter The desired delimiter.
+     */
     public void saveTableAsFile(String tableName, String path, CharSequence delimiter) {
         TableWrapper table = tables.get(tableName);
 
@@ -313,6 +428,13 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     }
 
 
+    /**
+     * Saves a table to an object on OMERO.
+     *
+     * @param tableName The table name.
+     * @param type      The object type.
+     * @param id        The object ID.
+     */
     public void saveTable(String tableName, String type, long id) {
         GenericRepositoryObjectWrapper<?> object = getRepositoryObject(type, id);
         if (object != null) {
@@ -335,6 +457,14 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     }
 
 
+    /**
+     * Creates a tag on OMERO.
+     *
+     * @param name        The tag name.
+     * @param description The tag description.
+     *
+     * @return The tag ID.
+     */
     public long createTag(String name, String description) {
         long id = -1;
         try {
@@ -347,6 +477,14 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     }
 
 
+    /**
+     * Creates a project on OMERO.
+     *
+     * @param name        The project name.
+     * @param description The project description.
+     *
+     * @return The project ID.
+     */
     public long createProject(String name, String description) {
         long id = -1;
         try {
@@ -359,6 +497,15 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     }
 
 
+    /**
+     * Creates a dataset on OMERO.
+     *
+     * @param name        The dataset name.
+     * @param description The dataset description.
+     * @param projectId   The ID of the parent project.
+     *
+     * @return The dataset ID.
+     */
     public long createDataset(String name, String description, Long projectId) {
         long id = -1;
         try {
@@ -377,6 +524,12 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     }
 
 
+    /**
+     * Deletes an object on OMERO.
+     *
+     * @param type The object type.
+     * @param id   The object ID.
+     */
     public void delete(String type, long id) {
         GenericObjectWrapper<?> object = getObject(type, id);
         try {
@@ -390,6 +543,13 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     }
 
 
+    /**
+     * Lists the objects of the specified type.
+     *
+     * @param type The objects type.
+     *
+     * @return The comma-delimited list of object IDs.
+     */
     public String list(String type) {
         String singularType = singularType(type);
 
@@ -422,6 +582,14 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     }
 
 
+    /**
+     * Lists the objects of the specified type with the specified name.
+     *
+     * @param type The objects type.
+     * @param name The objects name.
+     *
+     * @return The comma-delimited list of object IDs.
+     */
     public String list(String type, String name) {
         String singularType = singularType(type);
 
@@ -454,6 +622,14 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     }
 
 
+    /**
+     * Lists the objects of the specified type inside the specified container.
+     *
+     * @param type   The object type.
+     * @param parent The type of container.
+     *
+     * @return The comma-delimited list of object IDs.
+     */
     public String list(String type, String parent, long id) {
         String singularType   = singularType(type);
         String singularParent = singularType(parent);
@@ -531,6 +707,11 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     }
 
 
+    /**
+     * Switches to another user.
+     *
+     * @param username The other user's name.
+     */
     public void sudo(String username) {
         switched = client;
         try {
@@ -542,6 +723,9 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     }
 
 
+    /**
+     * Stops acting as another user.
+     */
     public void endSudo() {
         if (switched != null) {
             client = switched;
@@ -552,6 +736,14 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     }
 
 
+    /**
+     * Links two objects.
+     *
+     * @param type1 The first object type.
+     * @param id1   The first object ID.
+     * @param type2 The second object type.
+     * @param id2   The second object ID.
+     */
     public void link(String type1, long id1, String type2, long id2) {
         String t1 = singularType(type1);
         String t2 = singularType(type2);
@@ -588,6 +780,14 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     }
 
 
+    /**
+     * Unlinks two objects.
+     *
+     * @param type1 The first object type.
+     * @param id1   The first object ID.
+     * @param type2 The second object type.
+     * @param id2   The second object ID.
+     */
     public void unlink(String type1, long id1, String type2, long id2) {
         String t1 = singularType(type1);
         String t2 = singularType(type2);
@@ -627,6 +827,14 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     }
 
 
+    /**
+     * Retrieves the name of an object.
+     *
+     * @param type The object type.
+     * @param id   The object ID.
+     *
+     * @return The object name.
+     */
     public String getName(String type, long id) {
         String name = null;
 
@@ -640,6 +848,13 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     }
 
 
+    /**
+     * Opens an image.
+     *
+     * @param id The image ID.
+     *
+     * @return The image, as an {@link ImagePlus}.
+     */
     public ImagePlus getImage(long id) {
         ImagePlus imp = null;
         try {
@@ -652,6 +867,16 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     }
 
 
+    /**
+     * Retrieves the image ROIs and puts the in the ROI Manager, or the image overlay.
+     *
+     * @param imp       The image in ImageJ.
+     * @param id        The image ID on OMERO.
+     * @param toOverlay Whether to put ROIs on the overlay.
+     * @param property  The ROI property to group shapes.
+     *
+     * @return The number of (2D) ROIs loaded in ImageJ.
+     */
     public int getROIs(ImagePlus imp, long id, boolean toOverlay, String property) {
         List<ROIWrapper> rois = new ArrayList<>(0);
         try {
@@ -685,6 +910,15 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     }
 
 
+    /**
+     * Saves the ROIs from the ROI Manager and the image overlay to the image on OMERO.
+     *
+     * @param imp      The image in ImageJ.
+     * @param id       The image ID on OMERO.
+     * @param property The ROI property to group shapes.
+     *
+     * @return The number of (4D) ROIs saved on OMERO.
+     */
     public int saveROIs(ImagePlus imp, long id, String property) {
         int result = 0;
         try {
@@ -732,6 +966,9 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     }
 
 
+    /**
+     * Disconnects from OMERO.
+     */
     public void disconnect() {
         if (switched != null) endSudo();
         client.disconnect();
@@ -748,11 +985,13 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     }
 
 
+    @Override
     public ExtensionDescriptor[] getExtensionFunctions() {
         return extensions;
     }
 
 
+    @Override
     public String handleExtension(String name, Object[] args) {
         long   id;
         long   id1;
