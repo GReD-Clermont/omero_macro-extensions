@@ -38,6 +38,8 @@ import static org.junit.jupiter.api.Assertions.fail;
 @ExtendWith(TestResultLogger.class)
 class OMEROExtensionErrorTest {
 
+    private static final Object[] NULL_ARRAY = {null, null, null, null};
+
     private final ByteArrayOutputStream outContent  = new ByteArrayOutputStream();
     private final ByteArrayOutputStream errContent  = new ByteArrayOutputStream();
     private final PrintStream           originalOut = System.out;
@@ -59,7 +61,7 @@ class OMEROExtensionErrorTest {
 
     @AfterEach
     public void tearDown() {
-        ext.handleExtension("disconnect", null);
+        ext.handleExtension("disconnect", NULL_ARRAY);
         System.setOut(originalOut);
         System.setErr(originalErr);
     }
@@ -75,7 +77,7 @@ class OMEROExtensionErrorTest {
 
     @Test
     void testNoSuchMethod() {
-        ext.handleExtension("hello", null);
+        ext.handleExtension("hello", NULL_ARRAY);
         String expected = "No such method: hello";
         assertEquals(expected, outContent.toString().trim());
     }
@@ -84,7 +86,7 @@ class OMEROExtensionErrorTest {
     @Test
     void testConnectionError() {
         final double port = 4064;
-        ext.handleExtension("disconnect", null);
+        ext.handleExtension("disconnect", NULL_ARRAY);
         Object[] args = {"omero", port, "omero", "password"};
         ext.handleExtension("connectToOMERO", args);
         String expected = "Could not connect: Cannot connect to OMERO";
@@ -147,7 +149,7 @@ class OMEROExtensionErrorTest {
 
     @Test
     void testEndSudoError() {
-        ext.handleExtension("endSudo", null);
+        ext.handleExtension("endSudo", NULL_ARRAY);
         String expected = "No sudo has been used before.";
         assertEquals(expected, outContent.toString().trim());
     }
