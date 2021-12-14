@@ -51,6 +51,8 @@ import static org.junit.jupiter.api.Assertions.fail;
 @ExtendWith(TestResultLogger.class)
 class OMEROExtensionTest {
 
+    private static final Object[] NULL_ARRAY = {null, null, null, null};
+
     private OMEROMacroExtension ext;
 
 
@@ -65,7 +67,7 @@ class OMEROExtensionTest {
 
     @AfterEach
     public void tearDown() {
-        ext.handleExtension("disconnect", null);
+        ext.handleExtension("disconnect", NULL_ARRAY);
     }
 
 
@@ -171,10 +173,10 @@ class OMEROExtensionTest {
     void testCreateProject() {
         Object[] args   = {"toDelete", "toBeDeleted"};
         String   result = ext.handleExtension("createProject", args);
-        Double   id     = Double.parseDouble(result);
+        double   id     = Double.parseDouble(result);
         Object[] args2  = {"project", id};
         ext.handleExtension("delete", args2);
-        assertNotNull(id);
+        assertNotEquals("", result);
     }
 
 
@@ -182,10 +184,10 @@ class OMEROExtensionTest {
     void testCreateDataset() {
         Object[] args   = {"toDelete", "toBeDeleted", null};
         String   result = ext.handleExtension("createDataset", args);
-        Double   id     = Double.parseDouble(result);
+        double   id     = Double.parseDouble(result);
         Object[] args2  = {"dataset", id};
         ext.handleExtension("delete", args2);
-        assertNotNull(id);
+        assertNotEquals("", result);
     }
 
 
@@ -331,7 +333,7 @@ class OMEROExtensionTest {
     @Test
     void testSudo() {
         final double port = 4064;
-        ext.handleExtension("disconnect", null);
+        ext.handleExtension("disconnect", NULL_ARRAY);
 
         Object[] args = {"omero", port, "root", "omero"};
         ext.handleExtension("connectToOMERO", args);
@@ -342,7 +344,7 @@ class OMEROExtensionTest {
         Object[] args3 = {"Project tag", "tag attached to a project"};
 
         String result = ext.handleExtension("createTag", args3);
-        Double id     = Double.parseDouble(result);
+        double id     = Double.parseDouble(result);
 
         Object[] args4 = {"tag", id, "project", 2.0};
 
@@ -351,8 +353,8 @@ class OMEROExtensionTest {
 
         ext.handleExtension("delete", args5);
 
-        ext.handleExtension("endSudo", null);
-        assertNotNull(id);
+        ext.handleExtension("endSudo", NULL_ARRAY);
+        assertNotEquals("", result);
     }
 
 
