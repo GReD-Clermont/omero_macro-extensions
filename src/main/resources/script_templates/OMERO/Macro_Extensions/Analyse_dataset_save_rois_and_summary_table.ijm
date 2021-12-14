@@ -39,7 +39,7 @@ if(connected == "true") {
     }
 }
 txt_file = getDir("temp") + "idr0021_merged_results.txt";
-Ext.saveTableAsTXT(table_name, txt_file);
+Ext.saveTableAsFile(table_name, txt_file, ",");
 Ext.saveTable(table_name, "Dataset", dataset_id);
 file_id = Ext.addFile("Dataset", dataset_id, txt_file);
 deleted = File.delete(txt_file);
