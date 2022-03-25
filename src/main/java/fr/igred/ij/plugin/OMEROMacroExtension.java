@@ -39,12 +39,6 @@ import ij.macro.MacroExtension;
 import ij.measure.ResultsTable;
 import ij.plugin.PlugIn;
 import ij.plugin.frame.RoiManager;
-import omero.gateway.exception.DSAccessException;
-import omero.gateway.exception.DSOutOfServiceException;
-import omero.gateway.facility.DataManagerFacility;
-import omero.gateway.facility.ROIFacility;
-import omero.gateway.model.ROIData;
-import omero.gateway.model.ROIResult;
 
 import java.io.File;
 import java.io.IOException;
@@ -973,40 +967,21 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
      *
      * @return The 1 if at least one ROI has been deleted
      */
-    public int removeROIs(long id) throws ExecutionException {
-        DataManagerFacility dm = client.getGateway().getFacility(DataManagerFacility.class);
+    public int removeROIs(long id) {
 
-        int result = 0;
+        int removed = 0;
         try {
             ImageWrapper image = client.getImage(id);
-
-            //Retrieve and delete all the rois linked to the selected image
-            ROIFacility roifac = client.getGateway().getFacility(ROIFacility.class);
-            List<ROIResult> roiresults = roifac.loadROIs(client.getCtx(), image.getId());
-            ROIResult r = roiresults.iterator().next();
-            if (r != null){
-                Collection<ROIData> rois = r.getROIs();
-                //Iterator<Roi> j = rois.iterator();
-                Iterator<ROIData> j = rois.iterator();
-                while (j.hasNext()) {
-                    ROIData roi = j.next();
-                    if (roi.asIObject() instanceof omero.model.IObject){
-                        dm.delete(client.getCtx(), roi.asIObject());
-                        //dm.delete(ctx, roi.asIObject()).loop(10, 500);
-                        result=1;
-                    }
-                }
+            List<ROIWrapper> rois = image.getROIs(client);
+            for (ROIWrapper roi : rois) {
+                client.delete(roi);
+                removed++;
             }
-        } catch (ServiceException | AccessException | ExecutionException e) {
-            IJ.error("Could not remove ROIs to image: " + e.getMessage());
-        } catch (DSOutOfServiceException e) {
-            e.printStackTrace();
-        } catch (DSAccessException e) {
-            e.printStackTrace();
+        } catch (ServiceException | AccessException | ExecutionException | OMEROServerError | InterruptedException e) {
+            IJ.error("Could not remove image ROIs: " + e.getMessage());
         }
-        return result;
+        return removed;
     }
-
 
 
     /**
@@ -1208,13 +1183,8 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
 
             case "removeROIs":
                 id = ((Double) args[0]).longValue();
-                int output = 0;
-                try {
-                    output = removeROIs( id);
-                } catch (ExecutionException e) {
-                    e.printStackTrace();
-                }
-                results = String.valueOf(output);
+                int removed = removeROIs(id);
+                results = String.valueOf(removed);
                 break;
 
             case "sudo":
