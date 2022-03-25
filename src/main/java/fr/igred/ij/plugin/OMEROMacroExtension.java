@@ -39,19 +39,19 @@ import ij.macro.MacroExtension;
 import ij.measure.ResultsTable;
 import ij.plugin.PlugIn;
 import ij.plugin.frame.RoiManager;
+import omero.gateway.exception.DSAccessException;
+import omero.gateway.exception.DSOutOfServiceException;
+import omero.gateway.facility.DataManagerFacility;
+import omero.gateway.facility.ROIFacility;
+import omero.gateway.model.ROIData;
+import omero.gateway.model.ROIResult;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
@@ -89,6 +89,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
             newDescriptor("getImage", this, ARG_NUMBER),
             newDescriptor("getROIs", this, ARG_NUMBER, ARG_NUMBER + ARG_OPTIONAL, ARG_STRING + ARG_OPTIONAL),
             newDescriptor("saveROIs", this, ARG_NUMBER, ARG_STRING + ARG_OPTIONAL),
+            newDescriptor("removeROIs", this, ARG_NUMBER, ARG_STRING + ARG_OPTIONAL),
             newDescriptor("sudo", this, ARG_STRING),
             newDescriptor("endSudo", this),
             newDescriptor("disconnect", this),
@@ -965,6 +966,48 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
         return result;
     }
 
+    /**
+     * removes the ROIs of the image in OMERO.
+     *
+     * @param id       The image ID on OMERO.
+     *
+     * @return The 1 if at least one ROI has been deleted
+     */
+    public int removeROIs(long id) throws ExecutionException {
+        DataManagerFacility dm = client.getGateway().getFacility(DataManagerFacility.class);
+
+        int result = 0;
+        try {
+            ImageWrapper image = client.getImage(id);
+
+            //Retrieve and delete all the rois linked to the selected image
+            ROIFacility roifac = client.getGateway().getFacility(ROIFacility.class);
+            List<ROIResult> roiresults = roifac.loadROIs(client.getCtx(), image.getId());
+            ROIResult r = roiresults.iterator().next();
+            if (r != null){
+                Collection<ROIData> rois = r.getROIs();
+                //Iterator<Roi> j = rois.iterator();
+                Iterator<ROIData> j = rois.iterator();
+                while (j.hasNext()) {
+                    ROIData roi = j.next();
+                    if (roi.asIObject() instanceof omero.model.IObject){
+                        dm.delete(client.getCtx(), roi.asIObject());
+                        //dm.delete(ctx, roi.asIObject()).loop(10, 500);
+                        result=1;
+                    }
+                }
+            }
+        } catch (ServiceException | AccessException | ExecutionException e) {
+            IJ.error("Could not remove ROIs to image: " + e.getMessage());
+        } catch (DSOutOfServiceException e) {
+            e.printStackTrace();
+        } catch (DSAccessException e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
+
+
 
     /**
      * Disconnects from OMERO.
@@ -979,6 +1022,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     public void run(String arg) {
         if (!IJ.macroRunning()) {
             IJ.error("Cannot install extensions from outside a macro!");
+            //TODO print API
             return;
         }
         Functions.registerExtensions(this);
@@ -1160,6 +1204,17 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                 property = (String) args[1];
                 int nROIs = saveROIs(IJ.getImage(), id, property);
                 results = String.valueOf(nROIs);
+                break;
+
+            case "removeROIs":
+                id = ((Double) args[0]).longValue();
+                int output = 0;
+                try {
+                    output = removeROIs( id);
+                } catch (ExecutionException e) {
+                    e.printStackTrace();
+                }
+                results = String.valueOf(output);
                 break;
 
             case "sudo":
