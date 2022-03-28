@@ -11,7 +11,7 @@
 
     <groupId>fr.igred</groupId>
     <artifactId>omero_macro-extensions</artifactId>
-    <version>1.1.0</version>
+    <version>1.2.0</version>
 
     <name>ImageJ OMERO macro extensions</name>
     <description>Plugin providing macro extensions for OMERO.</description>
@@ -52,6 +52,10 @@
         <contributor>
             <name>Pierre Pouchin</name>
             <email>pierre.pouchin@uca.fr</email>
+        </contributor>
+        <contributor>
+            <name>Romain Guiet</name>
+            <email>romain.guiet@epfl.ch</email>
         </contributor>
     </contributors>
 

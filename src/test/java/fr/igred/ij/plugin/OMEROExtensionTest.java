@@ -18,6 +18,9 @@ package fr.igred.ij.plugin;
 
 import fr.igred.omero.Client;
 import fr.igred.omero.annotations.TableWrapper;
+import fr.igred.omero.exception.AccessException;
+import fr.igred.omero.exception.OMEROServerError;
+import fr.igred.omero.exception.ServiceException;
 import ij.ImagePlus;
 import ij.gui.Overlay;
 import ij.gui.Roi;
@@ -39,6 +42,7 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -284,10 +288,14 @@ class OMEROExtensionTest {
         int savedROIs = ext.saveROIs(imp, 1L, "");
         overlay.clear();
         int loadedROIs = ext.getROIs(imp, 1L, true, "");
+        ext.removeROIs(1L);
+        int clearedROIs = ext.getROIs(imp, 1L, true, "");
+
 
         assertEquals(1, savedROIs);
         assertEquals(1, loadedROIs);
         assertEquals(1, imp.getOverlay().size());
+        assertEquals(0, clearedROIs);
     }
 
 

@@ -45,6 +45,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -89,6 +90,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
             newDescriptor("getImage", this, ARG_NUMBER),
             newDescriptor("getROIs", this, ARG_NUMBER, ARG_NUMBER + ARG_OPTIONAL, ARG_STRING + ARG_OPTIONAL),
             newDescriptor("saveROIs", this, ARG_NUMBER, ARG_STRING + ARG_OPTIONAL),
+            newDescriptor("removeROIs", this, ARG_NUMBER, ARG_STRING + ARG_OPTIONAL),
             newDescriptor("sudo", this, ARG_STRING),
             newDescriptor("endSudo", this),
             newDescriptor("disconnect", this),
@@ -965,6 +967,29 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
         return result;
     }
 
+    /**
+     * removes the ROIs of the image in OMERO.
+     *
+     * @param id       The image ID on OMERO.
+     *
+     * @return The 1 if at least one ROI has been deleted
+     */
+    public int removeROIs(long id) {
+
+        int removed = 0;
+        try {
+            ImageWrapper image = client.getImage(id);
+            List<ROIWrapper> rois = image.getROIs(client);
+            for (ROIWrapper roi : rois) {
+                client.delete(roi);
+                removed++;
+            }
+        } catch (ServiceException | AccessException | ExecutionException | OMEROServerError | InterruptedException e) {
+            IJ.error("Could not remove image ROIs: " + e.getMessage());
+        }
+        return removed;
+    }
+
 
     /**
      * Disconnects from OMERO.
@@ -979,6 +1004,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     public void run(String arg) {
         if (!IJ.macroRunning()) {
             IJ.error("Cannot install extensions from outside a macro!");
+            //TODO print API
             return;
         }
         Functions.registerExtensions(this);
@@ -1160,6 +1186,12 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                 property = (String) args[1];
                 int nROIs = saveROIs(IJ.getImage(), id, property);
                 results = String.valueOf(nROIs);
+                break;
+
+            case "removeROIs":
+                id = ((Double) args[0]).longValue();
+                int removed = removeROIs(id);
+                results = String.valueOf(removed);
                 break;
 
             case "sudo":
