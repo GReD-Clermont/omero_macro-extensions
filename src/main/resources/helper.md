@@ -1,9 +1,9 @@
 To gain access to more advanced features of OMERO
 from within a macro, put the following line at the
 beginning of your macro:
-```
+
 run("OMERO Extensions");
-```
+
 This will enable the following macro functions:
 
 
