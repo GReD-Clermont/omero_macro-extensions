@@ -16,7 +16,6 @@
 package fr.igred.ij.plugin;
 
 
-import ij.IJ;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -75,10 +74,10 @@ class OMEROExtensionErrorTest {
         String expected = String.format("The macro extensions are designed to be used within a macro.%n" +
                                         "Instructions on doing so will be printed to the Log window.%n");
         try (InputStream is = ext.getClass().getResourceAsStream("/helper.md")) {
-            if(is != null) {
+            if (is != null) {
                 ByteArrayOutputStream result = new ByteArrayOutputStream();
-                byte[] buffer = new byte[2 ^ 10];
-                int    length = is.read(buffer);
+                byte[]                buffer = new byte[2 ^ 10];
+                int                   length = is.read(buffer);
                 while (length != -1) {
                     result.write(buffer, 0, length);
                     length = is.read(buffer);
@@ -173,7 +172,7 @@ class OMEROExtensionErrorTest {
     @Test
     void testListInvalidArgs() {
         final double datasetId = 2;
-        Object[] args = {"dataset", null, datasetId};
+        Object[]     args      = {"dataset", null, datasetId};
         ext.handleExtension("list", args);
         String expected = "Second argument should not be null.";
         assertEquals(expected, outContent.toString().trim());
