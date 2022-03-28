@@ -40,12 +40,13 @@ import ij.measure.ResultsTable;
 import ij.plugin.PlugIn;
 import ij.plugin.frame.RoiManager;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -979,8 +980,8 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
 
         int removed = 0;
         try {
-            ImageWrapper image = client.getImage(id);
-            List<ROIWrapper> rois = image.getROIs(client);
+            ImageWrapper     image = client.getImage(id);
+            List<ROIWrapper> rois  = image.getROIs(client);
             for (ROIWrapper roi : rois) {
                 client.delete(roi);
                 removed++;
@@ -1007,8 +1008,23 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     @Override
     public void run(String arg) {
         if (!IJ.macroRunning()) {
-            IJ.error("Cannot install extensions from outside a macro!");
-            //TODO print API
+            IJ.showMessage("OMERO extensions for ImageJ",
+                           String.format("The macro extensions are designed to be used within a macro.%n" +
+                                         "Instructions on doing so will be printed to the Log window."));
+            try (InputStream is = this.getClass().getResourceAsStream("/helper.md")) {
+                if(is != null) {
+                    ByteArrayOutputStream result = new ByteArrayOutputStream();
+                    byte[] buffer = new byte[2 ^ 10];
+                    int    length = is.read(buffer);
+                    while (length != -1) {
+                        result.write(buffer, 0, length);
+                        length = is.read(buffer);
+                    }
+                    IJ.log(result.toString("UTF-8"));
+                }
+            } catch (IOException e) {
+                IJ.error("Could not retrieve commands.");
+            }
             return;
         }
         Functions.registerExtensions(this);
