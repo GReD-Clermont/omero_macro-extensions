@@ -967,12 +967,13 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
         return result;
     }
 
+
     /**
-     * removes the ROIs of the image in OMERO.
+     * Removes the ROIs from an image in OMERO.
      *
-     * @param id       The image ID on OMERO.
+     * @param id The image ID on OMERO.
      *
-     * @return The 1 if at least one ROI has been deleted
+     * @return The number of ROIs that were deleted.
      */
     public int removeROIs(long id) {
 
@@ -984,8 +985,11 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                 client.delete(roi);
                 removed++;
             }
-        } catch (ServiceException | AccessException | ExecutionException | OMEROServerError | InterruptedException e) {
+        } catch (ServiceException | AccessException | ExecutionException | OMEROServerError e) {
             IJ.error("Could not remove image ROIs: " + e.getMessage());
+        } catch (InterruptedException e) {
+            IJ.error("Could not remove image ROIs: " + e.getMessage());
+            Thread.currentThread().interrupt();
         }
         return removed;
     }
