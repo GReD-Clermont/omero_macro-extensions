@@ -278,7 +278,7 @@ class OMEROExtensionTest {
 
 
     @Test
-    void testSaveAndGetROIs() throws AccessException, ServiceException, OMEROServerError, ExecutionException, InterruptedException {
+    void testSaveAndGetROIs() {
         ImagePlus imp     = ext.getImage(1L);
         Overlay   overlay = new Overlay();
         Roi       roi     = new Roi(25, 30, 70, 50);
