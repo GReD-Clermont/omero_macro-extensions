@@ -27,6 +27,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintStream;
 import java.nio.file.Files;
 
@@ -68,10 +69,23 @@ class OMEROExtensionErrorTest {
 
 
     @Test
-    void testRun() {
+    void testRun() throws IOException {
         ext.run("");
-        String expected = "Cannot install extensions from outside a macro!";
-        assertEquals(expected, outContent.toString().trim());
+        String expected = String.format("The macro extensions are designed to be used within a macro.%n" +
+                                        "Instructions on doing so will be printed to the Log window.%n");
+        try (InputStream is = ext.getClass().getResourceAsStream("/helper.md")) {
+            if (is != null) {
+                ByteArrayOutputStream result = new ByteArrayOutputStream();
+                byte[]                buffer = new byte[2 ^ 10];
+                int                   length = is.read(buffer);
+                while (length != -1) {
+                    result.write(buffer, 0, length);
+                    length = is.read(buffer);
+                }
+                expected += result.toString("UTF-8");
+            }
+        }
+        assertEquals(expected.trim(), outContent.toString().trim());
     }
 
 
@@ -158,7 +172,7 @@ class OMEROExtensionErrorTest {
     @Test
     void testListInvalidArgs() {
         final double datasetId = 2;
-        Object[] args = {"dataset", null, datasetId};
+        Object[]     args      = {"dataset", null, datasetId};
         ext.handleExtension("list", args);
         String expected = "Second argument should not be null.";
         assertEquals(expected, outContent.toString().trim());

@@ -18,9 +18,6 @@ package fr.igred.ij.plugin;
 
 import fr.igred.omero.Client;
 import fr.igred.omero.annotations.TableWrapper;
-import fr.igred.omero.exception.AccessException;
-import fr.igred.omero.exception.OMEROServerError;
-import fr.igred.omero.exception.ServiceException;
 import ij.ImagePlus;
 import ij.gui.Overlay;
 import ij.gui.Roi;
@@ -42,7 +39,6 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
