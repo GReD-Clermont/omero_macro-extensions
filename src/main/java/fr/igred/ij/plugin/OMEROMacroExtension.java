@@ -30,6 +30,7 @@ import fr.igred.omero.repository.ImageWrapper;
 import fr.igred.omero.repository.PlateWrapper;
 import fr.igred.omero.repository.ProjectWrapper;
 import fr.igred.omero.repository.ScreenWrapper;
+import fr.igred.omero.repository.WellSampleWrapper;
 import fr.igred.omero.repository.WellWrapper;
 import fr.igred.omero.roi.ROIWrapper;
 import ij.IJ;
@@ -744,12 +745,104 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                             List<ImageWrapper> images = tag.getImages(client);
                             results = listToIDs(filterUser(images));
                             break;
+                        case SCREEN:
+                            List<ScreenWrapper> screens = tag.getScreens(client);
+                            results = listToIDs(filterUser(screens));
+                            break;
+                        case PLATE:
+                            List<PlateWrapper> plates = tag.getPlates(client);
+                            results = listToIDs(filterUser(plates));
+                            break;
+                        case WELL:
+                            List<WellWrapper> wells = tag.getWells(client);
+                            results = listToIDs(filterUser(wells));
+                            break;
                         default:
-                            IJ.error(INVALID + ": " + type + ". Possible values are: projects, datasets or images.");
+                            String msg = String.format("%s: %s. Possible values are: " +
+                                                       "projects, datasets, images, screens, plates or wells.",
+                                                       INVALID, parent);
+                            IJ.error(msg);
+                    }
+                    break;
+                case SCREEN:
+                    ScreenWrapper screen = client.getScreen(id);
+                    List<PlateWrapper> plates = screen.getPlates();
+                    switch (singularType) {
+                        case PLATE:
+                            results = listToIDs(filterUser(plates));
+                            break;
+                        case WELL:
+                            List<WellWrapper> wells = new ArrayList<>();
+                            for (PlateWrapper plate : plates) {
+                                wells.addAll(plate.getWells(client));
+                            }
+                            results = listToIDs(filterUser(wells));
+                            break;
+                        case IMAGE:
+                            List<ImageWrapper> images = new ArrayList<>();
+                            for (PlateWrapper plate : plates) {
+                                for (WellWrapper well : plate.getWells(client)) {
+                                    images.addAll(well.getWellSamples().stream()
+                                                      .map(WellSampleWrapper::getImage)
+                                                      .collect(Collectors.toList()));
+                                }
+                            }
+                            results = listToIDs(filterUser(images));
+                            break;
+                        case TAG:
+                            List<TagAnnotationWrapper> tags = screen.getTags(client);
+                            results = listToIDs(filterUser(tags));
+                            break;
+                        default:
+                            IJ.error(INVALID + ": " + type + ". Possible values are: plates, wells, images or tags.");
+                    }
+                    break;
+                case PLATE:
+                    PlateWrapper plate = client.getPlate(id);
+                    switch (singularType) {
+                        case WELL:
+                            List<WellWrapper> wells = plate.getWells(client);
+                            results = listToIDs(filterUser(wells));
+                            break;
+                        case IMAGE:
+                            List<ImageWrapper> images = new ArrayList<>();
+                            for (WellWrapper well : plate.getWells(client)) {
+                                images.addAll(well.getWellSamples().stream()
+                                                  .map(WellSampleWrapper::getImage)
+                                                  .collect(Collectors.toList()));
+                            }
+                            results = listToIDs(filterUser(images));
+                            break;
+                        case TAG:
+                            List<TagAnnotationWrapper> tags = plate.getTags(client);
+                            results = listToIDs(filterUser(tags));
+                            break;
+                        default:
+                            IJ.error(INVALID + ": " + type + ". Possible values are: wells, images or tags.");
+                    }
+                    break;
+                case WELL:
+                    WellWrapper well = client.getWell(id);
+                    switch (singularType) {
+                        case IMAGE:
+                            List<ImageWrapper> images = well.getWellSamples().stream()
+                                                            .map(WellSampleWrapper::getImage)
+                                                            .collect(Collectors.toList());
+                            results = listToIDs(filterUser(images));
+                            break;
+                        case TAG:
+                            List<TagAnnotationWrapper> tags = well.getTags(client);
+                            results = listToIDs(filterUser(tags));
+                            break;
+                        default:
+                            IJ.error(INVALID + ": " + type + ". Possible values are: images or tags.");
                     }
                     break;
                 default:
-                    IJ.error(INVALID + ": " + parent + ". Possible values are: project, dataset, image or tag.");
+                    String msg = String.format("%s: %s. Possible values are: " +
+                                               "project, dataset, image, screen, plate, well or tag.",
+                                               INVALID, parent);
+                    IJ.error(msg);
             }
         } catch (ServiceException | AccessException | ExecutionException | OMEROServerError e) {
             IJ.error("Could not retrieve " + type + " in " + parent + ": " + e.getMessage());
