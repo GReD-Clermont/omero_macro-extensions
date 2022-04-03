@@ -95,7 +95,7 @@
         <license.licenseName>gpl_v2</license.licenseName>
         <license.copyrightOwners>GReD</license.copyrightOwners>
         <allowedDuplicateClasses>com.esotericsoftware.kryo.*,com.esotericsoftware.minlog.*,com.esotericsoftware.reflectasm.*</allowedDuplicateClasses>
-        <soc.version>5.8.3</soc.version>
+        <soc.version>5.9.0</soc.version>
     </properties>
 
     <dependencyManagement>

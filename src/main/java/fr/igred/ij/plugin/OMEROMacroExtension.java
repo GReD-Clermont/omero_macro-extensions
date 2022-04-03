@@ -27,7 +27,10 @@ import fr.igred.omero.meta.ExperimenterWrapper;
 import fr.igred.omero.repository.DatasetWrapper;
 import fr.igred.omero.repository.GenericRepositoryObjectWrapper;
 import fr.igred.omero.repository.ImageWrapper;
+import fr.igred.omero.repository.PlateWrapper;
 import fr.igred.omero.repository.ProjectWrapper;
+import fr.igred.omero.repository.ScreenWrapper;
+import fr.igred.omero.repository.WellWrapper;
 import fr.igred.omero.roi.ROIWrapper;
 import ij.IJ;
 import ij.ImagePlus;
@@ -65,6 +68,9 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     private static final String PROJECT = "project";
     private static final String DATASET = "dataset";
     private static final String IMAGE   = "image";
+    private static final String SCREEN  = "screen";
+    private static final String PLATE   = "plate";
+    private static final String WELL    = "well";
     private static final String TAG     = "tag";
     private static final String INVALID = "Invalid type";
 
@@ -224,6 +230,15 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                     break;
                 case IMAGE:
                     object = client.getImage(id);
+                    break;
+                case SCREEN:
+                    object = client.getScreen(id);
+                    break;
+                case PLATE:
+                    object = client.getPlate(id);
+                    break;
+                case WELL:
+                    object = client.getWell(id);
                     break;
                 default:
                     IJ.error(INVALID + ": " + type + ".");
@@ -571,12 +586,27 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                     List<ImageWrapper> images = client.getImages();
                     results = listToIDs(filterUser(images));
                     break;
+                case SCREEN:
+                    List<ScreenWrapper> screens = client.getScreens();
+                    results = listToIDs(filterUser(screens));
+                    break;
+                case PLATE:
+                    List<PlateWrapper> plates = client.getPlates();
+                    results = listToIDs(filterUser(plates));
+                    break;
+                case WELL:
+                    List<WellWrapper> wells = client.getWells();
+                    results = listToIDs(filterUser(wells));
+                    break;
                 case TAG:
                     List<TagAnnotationWrapper> tags = client.getTags();
                     results = listToIDs(filterUser(tags));
                     break;
                 default:
-                    IJ.error(INVALID + ": " + type + ". Possible values are: projects, datasets, images or tags.");
+                    String msg = String.format("%s: %s. Possible values are: " +
+                                               "projects, datasets, images, screens, plates, wells or tags.",
+                                               INVALID, type);
+                    IJ.error(msg);
             }
         } catch (ServiceException | AccessException | OMEROServerError | ExecutionException e) {
             IJ.error("Could not retrieve " + type + ": " + e.getMessage());
@@ -611,12 +641,30 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                     List<ImageWrapper> images = client.getImages(name);
                     results = listToIDs(filterUser(images));
                     break;
+                case SCREEN:
+                    List<ScreenWrapper> screens = client.getScreens();
+                    screens.removeIf(s -> !name.equals(s.getName()));
+                    results = listToIDs(filterUser(screens));
+                    break;
+                case PLATE:
+                    List<PlateWrapper> plates = client.getPlates();
+                    plates.removeIf(p -> !name.equals(p.getName()));
+                    results = listToIDs(filterUser(plates));
+                    break;
+                case WELL:
+                    List<WellWrapper> wells = client.getWells();
+                    wells.removeIf(w -> !name.equals(w.getName()));
+                    results = listToIDs(filterUser(wells));
+                    break;
                 case TAG:
                     List<TagAnnotationWrapper> tags = client.getTags(name);
                     results = listToIDs(filterUser(tags));
                     break;
                 default:
-                    IJ.error(INVALID + ": " + type + ". Possible values are: projects, datasets, images or tags.");
+                    String msg = String.format("%s: %s. Possible values are: " +
+                                               "projects, datasets, images, screens, plates, wells or tags.",
+                                               INVALID, type);
+                    IJ.error(msg);
             }
         } catch (ServiceException | AccessException | OMEROServerError | ExecutionException e) {
             IJ.error(String.format("Could not retrieve %s with name \"%s\": %s", type, name, e.getMessage()));
@@ -1012,10 +1060,10 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                            String.format("The macro extensions are designed to be used within a macro.%n" +
                                          "Instructions on doing so will be printed to the Log window."));
             try (InputStream is = this.getClass().getResourceAsStream("/helper.md")) {
-                if(is != null) {
+                if (is != null) {
                     ByteArrayOutputStream result = new ByteArrayOutputStream();
-                    byte[] buffer = new byte[2 ^ 10];
-                    int    length = is.read(buffer);
+                    byte[]                buffer = new byte[2 ^ 10];
+                    int                   length = is.read(buffer);
                     while (length != -1) {
                         result.write(buffer, 0, length);
                         length = is.read(buffer);
