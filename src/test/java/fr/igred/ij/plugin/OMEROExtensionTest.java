@@ -104,8 +104,10 @@ class OMEROExtensionTest {
                                          "list;project;1,2",
                                          "list;datasets;1,2,3",
                                          "list;dataset;1,2,3",
-                                         "list;images;1,2,3,4",
-                                         "list;image;1,2,3,4",
+                                         "list;images;1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20",
+                                         "list;image;1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20",
+                                         "list;screens;1,2",
+                                         "list;plates;1,2,3",
                                          "list;tags;1,2,3",
                                          "list;tag;1,2,3",})
     void testListAll(String extension, String type, String output) {
@@ -122,6 +124,8 @@ class OMEROExtensionTest {
                                          "list;dataset;TestDatasetImport;2",
                                          "list;images;image1.fake;1,2,4",
                                          "list;image;image1.fake;1,2,4",
+                                         "list;screen;TestScreen;1",
+                                         "list;plate;Plate Name 0;1,2",
                                          "list;tags;tag2;2",
                                          "list;tag;tag2;2",})
     void testListByName(String extension, String type, String name, String output) {
@@ -145,11 +149,27 @@ class OMEROExtensionTest {
                                          "list;images;project;1.0;1,2,3",
                                          "list;image;projects;1.0;1,2,3",
                                          "list;images;tag;1.0;1,2,4",
-                                         "list;image;tags;1.0;1,2,4",})
+                                         "list;image;tags;1.0;1,2,4",
+                                         "list;screens;tag;1.0;1",
+                                         "list;plates;tag;1.0;1",
+                                         "list;wells;tag;1.0;1",
+                                         "list;tags;screen;1.0;1",
+                                         "list;tags;plate;1.0;1",
+                                         "list;tags;well;1.0;1",
+                                         "list;plates;screen;2.0;2,3",
+                                         "list;wells;screen;1.0;1,2,3,4",
+                                         "list;images;screen;1.0;5,6,7,8,9,10,11,12",
+                                         "list;wells;plate;2.0;5,6,7,8",
+                                         "list;images;plate;2.0;13,14,15,16",})
     void testListFrom(String extension, String type, String parent, double id, String output) {
         Object[] args   = {type, parent, id};
         String   result = ext.handleExtension(extension, args);
-        assertEquals(output, result, String.format("\"%s\" failed for: %s,%s,%f", extension, type, parent, id));
+
+        String sortedIds = Arrays.stream(result.split(",")).map(Long::parseLong).sorted()
+                                 .map(String::valueOf)
+                                 .collect(Collectors.joining(","));
+
+        assertEquals(output, sortedIds, String.format("\"%s\" failed for: %s,%s,%f", extension, type, parent, id));
     }
 
 
@@ -160,7 +180,8 @@ class OMEROExtensionTest {
                                          "getName;datasets;1.0;TestDataset",
                                          "getName;images;1.0;image1.fake",
                                          "getName;image;1.0;image1.fake",
-                                         "getName;tags;1.0;tag1",
+                                         "getName;screen;1.0;TestScreen",
+                                         "getName;plate;1.0;Plate Name 0",
                                          "getName;tag;1.0;tag1",})
     void testGetName(String extension, String type, double id, String output) {
         Object[] args   = {type, id};
@@ -297,8 +318,8 @@ class OMEROExtensionTest {
 
     @Test
     void testImportImage() throws IOException {
-        String path = "./8bit-unsigned&pixelType=uint8&sizeZ=3&sizeC=5&sizeT=7&sizeX=512&sizeY=512.fake";
-        File   f    = new File(path);
+        String path = "8bit-unsigned&pixelType=uint8&sizeZ=3&sizeC=5&sizeT=7&sizeX=512&sizeY=512.fake";
+        File   f    = new File("." + File.separator + path);
         if (!f.createNewFile()) {
             System.err.println("\"" + f.getCanonicalPath() + "\" could not be created.");
             fail();
