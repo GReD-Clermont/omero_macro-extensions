@@ -104,10 +104,11 @@ class OMEROExtensionTest {
                                          "list;project;1,2",
                                          "list;datasets;1,2,3",
                                          "list;dataset;1,2,3",
-                                         "list;images;1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20",
-                                         "list;image;1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20",
+                                         "list;images;1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22",
+                                         "list;image;1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22",
                                          "list;screens;1,2",
                                          "list;plates;1,2,3",
+                                         "list;wells;1,2,3,4,5,6,7,8,9",
                                          "list;tags;1,2,3",
                                          "list;tag;1,2,3",})
     void testListAll(String extension, String type, String output) {
@@ -157,10 +158,11 @@ class OMEROExtensionTest {
                                          "list;tags;plate;1.0;1",
                                          "list;tags;well;1.0;1",
                                          "list;plates;screen;2.0;2,3",
-                                         "list;wells;screen;1.0;1,2,3,4",
-                                         "list;images;screen;1.0;5,6,7,8,9,10,11,12",
-                                         "list;wells;plate;2.0;5,6,7,8",
-                                         "list;images;plate;2.0;13,14,15,16",})
+                                         "list;wells;screen;2.0;2,3,4,5,6,7,8,9",
+                                         "list;images;screen;1.0;5,6",
+                                         "list;wells;plate;2.0;2,3,4,5",
+                                         "list;images;plate;2.0;7,8,9,10,11,12,13,14",
+                                         "list;images;well;1.0;5,6",})
     void testListFrom(String extension, String type, String parent, double id, String output) {
         Object[] args   = {type, parent, id};
         String   result = ext.handleExtension(extension, args);
@@ -181,7 +183,8 @@ class OMEROExtensionTest {
                                          "getName;images;1.0;image1.fake",
                                          "getName;image;1.0;image1.fake",
                                          "getName;screen;1.0;TestScreen",
-                                         "getName;plate;1.0;Plate Name 0",
+                                         "getName;plate;2.0;Plate Name 0",
+                                         "getName;well;1.0;Well A-1",
                                          "getName;tag;1.0;tag1",})
     void testGetName(String extension, String type, double id, String output) {
         Object[] args   = {type, id};
