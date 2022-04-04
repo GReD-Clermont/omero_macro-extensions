@@ -28,6 +28,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -41,11 +43,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.*;
 
 
 @ExtendWith(TestResultLogger.class)
@@ -104,11 +102,11 @@ class OMEROExtensionTest {
                                          "list;project;1,2",
                                          "list;datasets;1,2,3",
                                          "list;dataset;1,2,3",
-                                         "list;images;1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22",
-                                         "list;image;1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22",
+                                         "list;images;1,2,3,4,5,6,7,8,9,10",
+                                         "list;image;1,2,3,4,5,6,7,8,9,10",
                                          "list;screens;1,2",
                                          "list;plates;1,2,3",
-                                         "list;wells;1,2,3,4,5,6,7,8,9",
+                                         "list;wells;1,2,3,4,5",
                                          "list;tags;1,2,3",
                                          "list;tag;1,2,3",})
     void testListAll(String extension, String type, String output) {
@@ -158,10 +156,10 @@ class OMEROExtensionTest {
                                          "list;tags;plate;1.0;1",
                                          "list;tags;well;1.0;1",
                                          "list;plates;screen;2.0;2,3",
-                                         "list;wells;screen;2.0;2,3,4,5,6,7,8,9",
+                                         "list;wells;screen;2.0;2,3,4,5",
                                          "list;images;screen;1.0;5,6",
-                                         "list;wells;plate;2.0;2,3,4,5",
-                                         "list;images;plate;2.0;7,8,9,10,11,12,13,14",
+                                         "list;wells;plate;2.0;2,3",
+                                         "list;images;plate;2.0;7,8",
                                          "list;images;well;1.0;5,6",})
     void testListFrom(String extension, String type, String parent, double id, String output) {
         Object[] args   = {type, parent, id};
@@ -204,9 +202,11 @@ class OMEROExtensionTest {
     }
 
 
-    @Test
-    void testCreateDataset() {
-        Object[] args   = {"toDelete", "toBeDeleted", null};
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(doubles = {1.0})
+    void testCreateDataset(Double projectId) {
+        Object[] args   = {"toDelete", "toBeDeleted", projectId};
         String   result = ext.handleExtension("createDataset", args);
         double   id     = Double.parseDouble(result);
         Object[] args2  = {"dataset", id};
@@ -232,6 +232,9 @@ class OMEROExtensionTest {
     @ParameterizedTest
     @CsvSource(delimiter = ';', value = {"tag;1.0;project;2.0",
                                          "tag;1.0;dataset;3.0",
+                                         "tag;1.0;screen;1.0",
+                                         "tag;1.0;plate;1.0",
+                                         "tag;1.0;well;1.0",
                                          "dataset;3.0;project;2.0",
                                          "image;1.0;dataset;1.0",})
     void testUnlinkThenLink(String type1, double id1, String type2, double id2) {
@@ -285,6 +288,17 @@ class OMEROExtensionTest {
         double   fileId = Double.parseDouble(result);
         Object[] args2  = {fileId};
         ext.handleExtension("deleteFile", args2);
+    }
+
+
+    @Test
+    void testListWellsByName() {
+        Object[] args   = {"wells", "Well A-1", null};
+        String   result = ext.handleExtension("list", args);
+
+        Long[] ids = Arrays.stream(result.split(",")).map(Long::parseLong).sorted().toArray(Long[]::new);
+        assertEquals(3, ids.length);
+        assertEquals(1L, ids[0]);
     }
 
 

@@ -53,8 +53,8 @@ touch "$WORKDIR/screen2.fake"
     echo "plates=2"
     echo "plateAcqs=1"
     echo "plateRows=2"
-    echo "plateCols=2"
-    echo "fields=2"
+    echo "plateCols=1"
+    echo "fields=1"
 } >> "$WORKDIR/screen2.fake.ini"
 
 
