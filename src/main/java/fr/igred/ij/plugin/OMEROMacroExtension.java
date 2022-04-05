@@ -27,7 +27,11 @@ import fr.igred.omero.meta.ExperimenterWrapper;
 import fr.igred.omero.repository.DatasetWrapper;
 import fr.igred.omero.repository.GenericRepositoryObjectWrapper;
 import fr.igred.omero.repository.ImageWrapper;
+import fr.igred.omero.repository.PlateWrapper;
 import fr.igred.omero.repository.ProjectWrapper;
+import fr.igred.omero.repository.ScreenWrapper;
+import fr.igred.omero.repository.WellSampleWrapper;
+import fr.igred.omero.repository.WellWrapper;
 import fr.igred.omero.roi.ROIWrapper;
 import ij.IJ;
 import ij.ImagePlus;
@@ -50,6 +54,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -65,8 +70,14 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     private static final String PROJECT = "project";
     private static final String DATASET = "dataset";
     private static final String IMAGE   = "image";
+    private static final String SCREEN  = "screen";
+    private static final String PLATE   = "plate";
+    private static final String WELL    = "well";
     private static final String TAG     = "tag";
     private static final String INVALID = "Invalid type";
+
+    private static final String ERROR_POSSIBLE_VALUES = "%s: %s. Possible values are: %s";
+    private static final String ERROR_RETRIEVE_IN     = "Could not retrieve %s in %s: %s";
 
     private final ExtensionDescriptor[] extensions = {
             newDescriptor("connectToOMERO", this, ARG_STRING, ARG_NUMBER, ARG_STRING, ARG_STRING),
@@ -225,6 +236,15 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                 case IMAGE:
                     object = client.getImage(id);
                     break;
+                case SCREEN:
+                    object = client.getScreen(id);
+                    break;
+                case PLATE:
+                    object = client.getPlate(id);
+                    break;
+                case WELL:
+                    object = client.getWell(id);
+                    break;
                 default:
                     IJ.error(INVALID + ": " + type + ".");
             }
@@ -232,6 +252,192 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
             IJ.error("Could not retrieve object: " + e.getMessage());
         }
         return object;
+    }
+
+
+    /**
+     * Lists the objects of the specified type linked to a tag.
+     *
+     * @param type The object type.
+     * @param id   The tag id.
+     *
+     * @return A list of GenericObjectWrappers.
+     */
+    private List<? extends GenericObjectWrapper<?>> listForTag(String type, long id)
+    throws ServiceException, OMEROServerError, AccessException, ExecutionException {
+        String singularType = singularType(type);
+
+        List<? extends GenericObjectWrapper<?>> objects = new ArrayList<>(0);
+        TagAnnotationWrapper                    tag     = client.getTag(id);
+        switch (singularType) {
+            case PROJECT:
+                objects = tag.getProjects(client);
+                break;
+            case DATASET:
+                objects = tag.getDatasets(client);
+                break;
+            case IMAGE:
+                objects = tag.getImages(client);
+                break;
+            case SCREEN:
+                objects = tag.getScreens(client);
+                break;
+            case PLATE:
+                objects = tag.getPlates(client);
+                break;
+            case WELL:
+                objects = tag.getWells(client);
+                break;
+            default:
+                String msg = String.format(ERROR_POSSIBLE_VALUES,
+                                           INVALID, type,
+                                           "projects, datasets, images, screens, plates or wells.");
+                IJ.error(msg);
+        }
+        return objects;
+    }
+
+
+    /**
+     * Lists the objects of the specified type inside a project.
+     *
+     * @param type The object type.
+     * @param id   The project id.
+     *
+     * @return A list of GenericObjectWrappers.
+     */
+    private List<? extends GenericObjectWrapper<?>> listForProject(String type, long id)
+    throws AccessException, ServiceException, ExecutionException {
+        String singularType = singularType(type);
+
+        List<? extends GenericObjectWrapper<?>> objects = new ArrayList<>(0);
+        ProjectWrapper                          project = client.getProject(id);
+        switch (singularType) {
+            case DATASET:
+                objects = project.getDatasets();
+                break;
+            case IMAGE:
+                objects = project.getImages(client);
+                break;
+            case TAG:
+                objects = project.getTags(client);
+                break;
+            default:
+                IJ.error(String.format(ERROR_POSSIBLE_VALUES, INVALID, type, "datasets, images or tags."));
+        }
+        return objects;
+    }
+
+
+    /**
+     * Lists the objects of the specified type inside a dataset.
+     *
+     * @param type The object type.
+     * @param id   The dataset id.
+     *
+     * @return A list of GenericObjectWrappers.
+     */
+    private List<? extends GenericObjectWrapper<?>> listForDataset(String type, long id)
+    throws AccessException, ServiceException, ExecutionException {
+        String singularType = singularType(type);
+
+        List<? extends GenericObjectWrapper<?>> objects = new ArrayList<>(0);
+        DatasetWrapper                          dataset = client.getDataset(id);
+        switch (singularType) {
+            case IMAGE:
+                objects = dataset.getImages(client);
+                break;
+            case TAG:
+                objects = dataset.getTags(client);
+                break;
+            default:
+                IJ.error(String.format(ERROR_POSSIBLE_VALUES, INVALID, type, "images or tags."));
+        }
+        return objects;
+    }
+
+
+    /**
+     * Lists the objects of the specified type inside a screen.
+     *
+     * @param type The object type.
+     * @param id   The screen id.
+     *
+     * @return A list of GenericObjectWrappers.
+     */
+    private List<? extends GenericObjectWrapper<?>> listForScreen(String type, long id)
+    throws AccessException, ServiceException, ExecutionException {
+        String singularType = singularType(type);
+
+        List<? extends GenericObjectWrapper<?>> objects = new ArrayList<>(0);
+        ScreenWrapper                           screen  = client.getScreen(id);
+        List<PlateWrapper>                      plates  = screen.getPlates();
+        switch (singularType) {
+            case PLATE:
+                objects = plates;
+                break;
+            case WELL:
+                List<WellWrapper> wells = new ArrayList<>();
+                for (PlateWrapper plate : plates) {
+                    wells.addAll(plate.getWells(client));
+                }
+                wells.sort(Comparator.comparing(GenericObjectWrapper::getId));
+                objects = wells;
+                break;
+            case IMAGE:
+                List<ImageWrapper> images = new ArrayList<>();
+                for (PlateWrapper plate : plates) {
+                    for (WellWrapper well : plate.getWells(client)) {
+                        images.addAll(well.getWellSamples().stream()
+                                          .map(WellSampleWrapper::getImage)
+                                          .collect(Collectors.toList()));
+                    }
+                }
+                images.sort(Comparator.comparing(GenericObjectWrapper::getId));
+                objects = images;
+                break;
+            case TAG:
+                objects = screen.getTags(client);
+                break;
+            default:
+                IJ.error(String.format(ERROR_POSSIBLE_VALUES, INVALID, type, "plates, wells, images or tags."));
+        }
+        return objects;
+    }
+
+
+    /**
+     * Lists the objects of the specified type inside a plate.
+     *
+     * @param type The object type.
+     * @param id   The plate id.
+     *
+     * @return A list of GenericObjectWrappers.
+     */
+    private List<? extends GenericObjectWrapper<?>> listForPlate(String type, long id)
+    throws AccessException, ServiceException, ExecutionException {
+        String singularType = singularType(type);
+
+        List<? extends GenericObjectWrapper<?>> objects = new ArrayList<>(0);
+        PlateWrapper                            plate   = client.getPlate(id);
+        switch (singularType) {
+            case WELL:
+                objects = plate.getWells(client);
+                break;
+            case IMAGE:
+                objects = plate.getWells(client)
+                               .stream()
+                               .flatMap(w -> w.getWellSamples().stream())
+                               .map(WellSampleWrapper::getImage)
+                               .collect(Collectors.toList());
+                break;
+            case TAG:
+                objects = plate.getTags(client);
+                break;
+            default:
+                IJ.error(String.format(ERROR_POSSIBLE_VALUES, INVALID, type, "wells, images or tags."));
+        }
+        return objects;
     }
 
 
@@ -571,12 +777,26 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                     List<ImageWrapper> images = client.getImages();
                     results = listToIDs(filterUser(images));
                     break;
+                case SCREEN:
+                    List<ScreenWrapper> screens = client.getScreens();
+                    results = listToIDs(filterUser(screens));
+                    break;
+                case PLATE:
+                    List<PlateWrapper> plates = client.getPlates();
+                    results = listToIDs(filterUser(plates));
+                    break;
+                case WELL:
+                    List<WellWrapper> wells = client.getWells();
+                    results = listToIDs(filterUser(wells));
+                    break;
                 case TAG:
                     List<TagAnnotationWrapper> tags = client.getTags();
                     results = listToIDs(filterUser(tags));
                     break;
                 default:
-                    IJ.error(INVALID + ": " + type + ". Possible values are: projects, datasets, images or tags.");
+                    String msg = String.format(ERROR_POSSIBLE_VALUES, INVALID, type,
+                                               "projects, datasets, images, screens, plates, wells or tags.");
+                    IJ.error(msg);
             }
         } catch (ServiceException | AccessException | OMEROServerError | ExecutionException e) {
             IJ.error("Could not retrieve " + type + ": " + e.getMessage());
@@ -611,12 +831,29 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                     List<ImageWrapper> images = client.getImages(name);
                     results = listToIDs(filterUser(images));
                     break;
+                case SCREEN:
+                    List<ScreenWrapper> screens = client.getScreens();
+                    screens.removeIf(s -> !name.equals(s.getName()));
+                    results = listToIDs(filterUser(screens));
+                    break;
+                case PLATE:
+                    List<PlateWrapper> plates = client.getPlates();
+                    plates.removeIf(p -> !name.equals(p.getName()));
+                    results = listToIDs(filterUser(plates));
+                    break;
+                case WELL:
+                    List<WellWrapper> wells = client.getWells();
+                    wells.removeIf(w -> !name.equals(w.getName()));
+                    results = listToIDs(filterUser(wells));
+                    break;
                 case TAG:
                     List<TagAnnotationWrapper> tags = client.getTags(name);
                     results = listToIDs(filterUser(tags));
                     break;
                 default:
-                    IJ.error(INVALID + ": " + type + ". Possible values are: projects, datasets, images or tags.");
+                    String msg = String.format(ERROR_POSSIBLE_VALUES, INVALID, type,
+                                               "projects, datasets, images, screens, plates, wells or tags.");
+                    IJ.error(msg);
             }
         } catch (ServiceException | AccessException | OMEROServerError | ExecutionException e) {
             IJ.error(String.format("Could not retrieve %s with name \"%s\": %s", type, name, e.getMessage()));
@@ -630,83 +867,60 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
      *
      * @param type   The object type.
      * @param parent The type of container.
+     * @param id     The container id.
      *
      * @return The comma-delimited list of object IDs.
      */
     public String list(String type, String parent, long id) {
-        String singularType   = singularType(type);
         String singularParent = singularType(parent);
+        String singularType   = singularType(type);
 
-        String results = "";
+        Collection<? extends GenericObjectWrapper<?>> objects = new ArrayList<>(0);
         try {
             switch (singularParent) {
                 case PROJECT:
-                    ProjectWrapper project = client.getProject(id);
-                    switch (singularType) {
-                        case DATASET:
-                            List<DatasetWrapper> datasets = project.getDatasets();
-                            results = listToIDs(filterUser(datasets));
-                            break;
-                        case IMAGE:
-                            List<ImageWrapper> images = project.getImages(client);
-                            results = listToIDs(filterUser(images));
-                            break;
-                        case TAG:
-                            List<TagAnnotationWrapper> tags = project.getTags(client);
-                            results = listToIDs(filterUser(tags));
-                            break;
-                        default:
-                            IJ.error(INVALID + ": " + type + ". Possible values are: datasets, images or tags.");
-                    }
+                    objects = listForProject(type, id);
                     break;
                 case DATASET:
-                    DatasetWrapper dataset = client.getDataset(id);
-                    switch (singularType) {
-                        case IMAGE:
-                            List<ImageWrapper> images = dataset.getImages(client);
-                            results = listToIDs(filterUser(images));
-                            break;
-                        case TAG:
-                            List<TagAnnotationWrapper> tags = dataset.getTags(client);
-                            results = listToIDs(filterUser(tags));
-                            break;
-                        default:
-                            IJ.error(INVALID + ": " + type + ". Possible values are: images or tags.");
+                    objects = listForDataset(type, id);
+                    break;
+                case TAG:
+                    objects = listForTag(type, id);
+                    break;
+                case SCREEN:
+                    objects = listForScreen(type, id);
+                    break;
+                case PLATE:
+                    objects = listForPlate(type, id);
+                    break;
+                case WELL:
+                    WellWrapper well = client.getWell(id);
+                    if (IMAGE.equals(singularType)) {
+                        objects = well.getWellSamples().stream()
+                                      .map(WellSampleWrapper::getImage)
+                                      .collect(Collectors.toList());
+                    } else if (TAG.equals(singularType)) {
+                        objects = well.getTags(client);
+                    } else {
+                        IJ.error(String.format(ERROR_POSSIBLE_VALUES, INVALID, type, "images or tags."));
                     }
                     break;
                 case IMAGE:
-                    if (singularType.equals(TAG)) {
-                        results = listToIDs(filterUser(client.getImage(id).getTags(client)));
+                    if (TAG.equals(singularType)) {
+                        objects = client.getImage(id).getTags(client);
                     } else {
                         IJ.error("Invalid type: " + type + ". Only possible value is: tags.");
                     }
                     break;
-                case TAG:
-                    TagAnnotationWrapper tag = client.getTag(id);
-                    switch (singularType) {
-                        case PROJECT:
-                            List<ProjectWrapper> projects = tag.getProjects(client);
-                            results = listToIDs(filterUser(projects));
-                            break;
-                        case DATASET:
-                            List<DatasetWrapper> datasets = tag.getDatasets(client);
-                            results = listToIDs(filterUser(datasets));
-                            break;
-                        case IMAGE:
-                            List<ImageWrapper> images = tag.getImages(client);
-                            results = listToIDs(filterUser(images));
-                            break;
-                        default:
-                            IJ.error(INVALID + ": " + type + ". Possible values are: projects, datasets or images.");
-                    }
-                    break;
                 default:
-                    IJ.error(INVALID + ": " + parent + ". Possible values are: project, dataset, image or tag.");
+                    String msg = String.format(ERROR_POSSIBLE_VALUES, INVALID, parent,
+                                               "project, dataset, image, screen, plate, well or tag.");
+                    IJ.error(msg);
             }
         } catch (ServiceException | AccessException | ExecutionException | OMEROServerError e) {
-            IJ.error("Could not retrieve " + type + " in " + parent + ": " + e.getMessage());
+            IJ.error(String.format(ERROR_RETRIEVE_IN, type, parent, e.getMessage()));
         }
-        return results;
+        return listToIDs(objects);
     }
 
 
@@ -1012,10 +1226,10 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                            String.format("The macro extensions are designed to be used within a macro.%n" +
                                          "Instructions on doing so will be printed to the Log window."));
             try (InputStream is = this.getClass().getResourceAsStream("/helper.md")) {
-                if(is != null) {
+                if (is != null) {
                     ByteArrayOutputStream result = new ByteArrayOutputStream();
-                    byte[] buffer = new byte[2 ^ 10];
-                    int    length = is.read(buffer);
+                    byte[]                buffer = new byte[2 ^ 10];
+                    int                   length = is.read(buffer);
                     while (length != -1) {
                         result.write(buffer, 0, length);
                         length = is.read(buffer);

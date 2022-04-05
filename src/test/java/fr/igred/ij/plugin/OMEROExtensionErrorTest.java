@@ -119,8 +119,8 @@ class OMEROExtensionErrorTest {
 
     @Test
     void testImportImageError() throws IOException {
-        String path = "./8bit-unsigned&pixelType=uint8&sizeZ=3&sizeC=5&sizeT=7&sizeX=512&sizeY=512.fake";
-        File   f    = new File(path);
+        String path = "8bit-unsigned&pixelType=uint8&sizeZ=3&sizeC=5&sizeT=7&sizeX=512&sizeY=512.fake";
+        File   f    = new File("." + File.separator + path);
         if (!f.createNewFile()) {
             System.err.println("\"" + f.getCanonicalPath() + "\" could not be created.");
             fail();
@@ -184,6 +184,9 @@ class OMEROExtensionErrorTest {
                                          "hello;project;2",
                                          "hello;dataset;2",
                                          "hello;image;2",
+                                         "hello;screen;2",
+                                         "hello;plate;2",
+                                         "hello;well;2",
                                          "hello;tag;2",
                                          "hello;TestDatasetImport;",
                                          "hello;;",})

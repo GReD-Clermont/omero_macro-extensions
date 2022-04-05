@@ -80,6 +80,36 @@ imageName = Ext.getName("image", imageIds[0]);
 print(imageName);
 ```
 
+* Screens:
+
+```
+screens = Ext.list("screens");
+print(screens);
+screenIds = split(screens,",");
+screenName = Ext.getName("screen", screenIds[0]);
+print(screenName);
+```
+
+* Plates:
+
+```
+plates = Ext.list("plates");
+print(plates);
+plateIds = split(plates,",");
+plateName = Ext.getName("plate", plateIds[0]);
+print(plateName);
+```
+
+* Wells:
+
+```
+wells = Ext.list("wells");
+print(wells);
+wellIds = split(wells,",");
+wellName = Ext.getName("well", wellIds[0]);
+print(wellName);
+```
+
 * Tags:
 
 ```
@@ -112,6 +142,18 @@ datasets = Ext.list("datasets", "name");
 images = Ext.list("images", "name");
 ```
 
+* Screens:
+
+```
+screens = Ext.list("screens", "name");
+```
+
+* Plates:
+
+```
+plates = Ext.list("plates", "name");
+```
+
 * Tags:
 
 ```
@@ -120,7 +162,7 @@ tags = Ext.list("tags", "name");
 
 ### Listing objects inside a given repository object
 
-Each object ID can then be used to retrieve the contained objects (IDs and names):
+Each object ID can then be used to retrieve the contained objects (IDs and names).
 
 It is, for example, possible to list datasets inside a project:
 
@@ -151,6 +193,34 @@ imageIds = split(images,",");
 imageName = Ext.getName("image", imageIds[0]);
 print(imageName);
 ```
+
+Screens, plates and wells can also be browsed this way:
+
+```
+screens = Ext.list("screens");
+screenIds = split(screens,",");
+screenName = Ext.getName("screen", screenIds[0]);
+plates = Ext.list("plates", "screen", screenIds[0]);
+plateIds = split(plates,",");
+wells = Ext.list("wells", "plate", plateIds[0]);
+wellIds = split(wells,",");
+images = Ext.list("images", "well", wellIds[0]);
+print(images);
+imageIds = split(images,",");
+imageName = Ext.getName("image", imageIds[0]);
+print(imageName);
+```
+
+Finally, intermediate hierarchy levels can be skipped when listing contained objects:
+
+```
+images = Ext.list("images", "project", projectIds[0]);
+print(images);
+imageIds = split(images,",");
+imageName = Ext.getName("image", imageIds[0]);
+print(imageName);
+```
+
 
 ### Creating projects, datasets and tags
 

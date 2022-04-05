@@ -1,5 +1,5 @@
 // @String(label="Username") USERNAME
-// @String(label="Password", style='password') PASSWORD
+// @String(label="Password", style='password', persist=false) PASSWORD
 // @String(label="Host", value='wss://workshop.openmicroscopy.org/omero-ws') HOST
 // @Integer(label="Port", value=4064) PORT
 
