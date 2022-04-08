@@ -1,4 +1,5 @@
 [![Java CI with Maven](https://github.com/GReD-Clermont/omero_macro-extensions/actions/workflows/maven.yml/badge.svg)](https://github.com/GReD-Clermont/omero_macro-extensions/actions/workflows/maven.yml)
+[![DOI](https://img.shields.io/badge/DOI-10.12688%2Ff1000research.110385.1-GREEN)](https://doi.org/10.12688/f1000research.110385.1)
 
 # OMERO Macro Extensions
 
