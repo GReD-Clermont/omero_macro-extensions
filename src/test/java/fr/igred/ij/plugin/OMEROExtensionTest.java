@@ -47,7 +47,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 
 @ExtendWith(TestResultLogger.class)
@@ -329,11 +328,11 @@ class OMEROExtensionTest {
         roi.setImage(imp);
         overlay.add(roi);
         imp.setOverlay(overlay);
-        int savedROIs = ext.saveROIs(imp, 1L, "");
+        Number savedROIs = ext.saveROIs(imp, 1L, "");
         overlay.clear();
-        int loadedROIs = ext.getROIs(imp, 1L, true, "");
+        Number loadedROIs = ext.getROIs(imp, 1L, 1.0, "");
         ext.removeROIs(1L);
-        int clearedROIs = ext.getROIs(imp, 1L, true, "");
+        Number clearedROIs = ext.getROIs(imp, 1L, 1.0, "");
 
 
         assertEquals(1, savedROIs);
@@ -349,10 +348,9 @@ class OMEROExtensionTest {
         File   f    = new File("." + File.separator + path);
         if (!f.createNewFile()) {
             System.err.println("\"" + f.getCanonicalPath() + "\" could not be created.");
-            fail();
         }
 
-        Object[] args1   = {2.0d, path};
+        Object[] args1   = {2, path};
         String   listIds = ext.handleExtension("importImage", args1);
         long[]   ids     = Arrays.stream(listIds.split(",")).mapToLong(Long::parseLong).toArray();
         assertNotNull(ids);
@@ -361,7 +359,7 @@ class OMEROExtensionTest {
         Object[] args2 = {"Image", (double) ids[0]};
         ext.handleExtension("delete", args2);
 
-        Object[] args3    = {"image", "dataset", 2.0D};
+        Object[] args3    = {"image", "dataset", 2};
         String   listIds2 = ext.handleExtension("list", args3);
         assertEquals("", listIds2);
         Files.deleteIfExists(f.toPath());
