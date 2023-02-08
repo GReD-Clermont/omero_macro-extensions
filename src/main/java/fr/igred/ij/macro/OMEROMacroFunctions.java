@@ -13,7 +13,7 @@
  * Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
-package fr.igred.ij.plugin;
+package fr.igred.ij.macro;
 
 
 import fr.igred.omero.Client;
@@ -68,7 +68,7 @@ import java.util.stream.Collectors;
 import static ij.macro.ExtensionDescriptor.newDescriptor;
 
 
-public class OMEROMacroExtension implements PlugIn, MacroExtension {
+public class OMEROMacroFunctions implements PlugIn, MacroExtension {
 
     private static final String PROJECT = "project";
     private static final String DATASET = "dataset";
