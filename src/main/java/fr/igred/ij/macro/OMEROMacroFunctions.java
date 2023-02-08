@@ -132,6 +132,19 @@ public class OMEROMacroFunctions {
 
 
     /**
+     * Gets the results table with the specified name, or the active table if null.
+     *
+     * @param resultsName The name of the ResultsTable.
+     *
+     * @return The corresponding ResultsTable.
+     */
+    private static ResultsTable getTable(String resultsName) {
+        if (resultsName == null) return ResultsTable.getResultsTable();
+        else return ResultsTable.getResultsTable(resultsName);
+    }
+
+
+    /**
      * Retrieves the object of the specified type with the specified ID.
      *
      * @param type The type of object.
@@ -139,13 +152,13 @@ public class OMEROMacroFunctions {
      *
      * @return The object.
      */
-    private GenericObjectWrapper<?> getObject(String type, long id) {
+    private GenericObjectWrapper<?> getObject(String type, Number id) {
         String singularType = singularType(type);
 
         GenericObjectWrapper<?> object = null;
         if (singularType.equals(TAG)) {
             try {
-                object = client.getTag(id);
+                object = client.getTag(id.longValue());
             } catch (OMEROServerError | ServiceException e) {
                 IJ.error("Could not retrieve tag: " + e.getMessage());
             }
@@ -164,28 +177,28 @@ public class OMEROMacroFunctions {
      *
      * @return The object.
      */
-    private GenericRepositoryObjectWrapper<?> getRepositoryObject(String type, long id) {
+    private GenericRepositoryObjectWrapper<?> getRepositoryObject(String type, Number id) {
         String                            singularType = singularType(type);
         GenericRepositoryObjectWrapper<?> object       = null;
         try {
             switch (singularType) {
                 case PROJECT:
-                    object = client.getProject(id);
+                    object = client.getProject(id.longValue());
                     break;
                 case DATASET:
-                    object = client.getDataset(id);
+                    object = client.getDataset(id.longValue());
                     break;
                 case IMAGE:
-                    object = client.getImage(id);
+                    object = client.getImage(id.longValue());
                     break;
                 case SCREEN:
-                    object = client.getScreen(id);
+                    object = client.getScreen(id.longValue());
                     break;
                 case PLATE:
-                    object = client.getPlate(id);
+                    object = client.getPlate(id.longValue());
                     break;
                 case WELL:
-                    object = client.getWell(id);
+                    object = client.getWell(id.longValue());
                     break;
                 default:
                     IJ.error(INVALID + ": " + type + ".");
@@ -205,12 +218,12 @@ public class OMEROMacroFunctions {
      *
      * @return A list of GenericObjectWrappers.
      */
-    private List<? extends GenericObjectWrapper<?>> listForTag(String type, long id)
+    private List<? extends GenericObjectWrapper<?>> listForTag(String type, Number id)
     throws ServiceException, OMEROServerError, AccessException, ExecutionException {
         String singularType = singularType(type);
 
         List<? extends GenericObjectWrapper<?>> objects = new ArrayList<>(0);
-        TagAnnotationWrapper                    tag     = client.getTag(id);
+        TagAnnotationWrapper                    tag     = client.getTag(id.longValue());
         switch (singularType) {
             case PROJECT:
                 objects = tag.getProjects(client);
@@ -248,12 +261,12 @@ public class OMEROMacroFunctions {
      *
      * @return A list of GenericObjectWrappers.
      */
-    private List<? extends GenericObjectWrapper<?>> listForProject(String type, long id)
+    private List<? extends GenericObjectWrapper<?>> listForProject(String type, Number id)
     throws AccessException, ServiceException, ExecutionException {
         String singularType = singularType(type);
 
         List<? extends GenericObjectWrapper<?>> objects = new ArrayList<>(0);
-        ProjectWrapper                          project = client.getProject(id);
+        ProjectWrapper                          project = client.getProject(id.longValue());
         switch (singularType) {
             case DATASET:
                 objects = project.getDatasets();
@@ -279,12 +292,12 @@ public class OMEROMacroFunctions {
      *
      * @return A list of GenericObjectWrappers.
      */
-    private List<? extends GenericObjectWrapper<?>> listForDataset(String type, long id)
+    private List<? extends GenericObjectWrapper<?>> listForDataset(String type, Number id)
     throws AccessException, ServiceException, ExecutionException {
         String singularType = singularType(type);
 
         List<? extends GenericObjectWrapper<?>> objects = new ArrayList<>(0);
-        DatasetWrapper                          dataset = client.getDataset(id);
+        DatasetWrapper                          dataset = client.getDataset(id.longValue());
         switch (singularType) {
             case IMAGE:
                 objects = dataset.getImages(client);
@@ -307,12 +320,12 @@ public class OMEROMacroFunctions {
      *
      * @return A list of GenericObjectWrappers.
      */
-    private List<? extends GenericObjectWrapper<?>> listForScreen(String type, long id)
+    private List<? extends GenericObjectWrapper<?>> listForScreen(String type, Number id)
     throws AccessException, ServiceException, ExecutionException {
         String singularType = singularType(type);
 
         List<? extends GenericObjectWrapper<?>> objects = new ArrayList<>(0);
-        ScreenWrapper                           screen  = client.getScreen(id);
+        ScreenWrapper                           screen  = client.getScreen(id.longValue());
         List<PlateWrapper>                      plates  = screen.getPlates();
         switch (singularType) {
             case PLATE:
@@ -356,12 +369,12 @@ public class OMEROMacroFunctions {
      *
      * @return A list of GenericObjectWrappers.
      */
-    private List<? extends GenericObjectWrapper<?>> listForPlate(String type, long id)
+    private List<? extends GenericObjectWrapper<?>> listForPlate(String type, Number id)
     throws AccessException, ServiceException, ExecutionException {
         String singularType = singularType(type);
 
         List<? extends GenericObjectWrapper<?>> objects = new ArrayList<>(0);
-        PlateWrapper                            plate   = client.getPlate(id);
+        PlateWrapper                            plate   = client.getPlate(id.longValue());
         switch (singularType) {
             case WELL:
                 objects = plate.getWells(client);
@@ -391,17 +404,17 @@ public class OMEROMacroFunctions {
      * @param username The username.
      * @param password The password.
      *
-     * @return True if connected, false otherwise.
+     * @return {@code "true"} if connected, {@code "false"} otherwise.
      */
-    public boolean connect(String hostname, int port, String username, String password) {
+    public String connect(String hostname, Number port, String username, String password) {
         boolean connected = false;
         try {
-            client.connect(hostname, port, username, password.toCharArray());
+            client.connect(hostname, port.intValue(), username, password.toCharArray());
             connected = true;
         } catch (ServiceException e) {
             IJ.error("Could not connect: " + e.getMessage());
         }
-        return connected;
+        return String.valueOf(connected);
     }
 
 
@@ -412,8 +425,8 @@ public class OMEROMacroFunctions {
      *
      * @return The current group ID.
      */
-    public long switchGroup(long groupId) {
-        client.switchGroup(groupId);
+    public Number switchGroup(Number groupId) {
+        client.switchGroup(groupId.longValue());
         return client.getCurrentGroupId();
     }
 
@@ -425,7 +438,7 @@ public class OMEROMacroFunctions {
      *
      * @return The user ID if set, -1 otherwise.
      */
-    public long setUser(String username) {
+    public Number setUser(String username) {
         long id = -1L;
         if (username != null && !username.trim().isEmpty() && !"all".equalsIgnoreCase(username)) {
             if (user != null) id = user.getId();
@@ -454,10 +467,10 @@ public class OMEROMacroFunctions {
      *
      * @return The file path. If multiple files were saved, they are comma-delimited.
      */
-    public String downloadImage(long imageId, String path) {
+    public String downloadImage(Number imageId, String path) {
         List<File> files = new ArrayList<>(0);
         try {
-            files = client.getImage(imageId).download(client, path);
+            files = client.getImage(imageId.longValue()).download(client, path);
         } catch (ServiceException | AccessException | OMEROServerError | ExecutionException |
                  NoSuchElementException e) {
             IJ.error("Could not download image: " + e.getMessage());
@@ -474,7 +487,7 @@ public class OMEROMacroFunctions {
      *
      * @return The list of imported IDs, separated by commas.
      */
-    public String importImage(long datasetId, String path) {
+    public String importImage(Number datasetId, String path) {
         String imagePath = path;
         if (path == null) {
             ImagePlus imp = IJ.getImage();
@@ -483,7 +496,7 @@ public class OMEROMacroFunctions {
         }
         List<Long> imageIds = new ArrayList<>(0);
         try {
-            imageIds = client.getDataset(datasetId).importImage(client, imagePath);
+            imageIds = client.getDataset(datasetId.longValue()).importImage(client, imagePath);
         } catch (ServiceException | AccessException | ExecutionException | OMEROServerError |
                  NoSuchElementException e) {
             IJ.error("Could not import image: " + e.getMessage());
@@ -508,7 +521,7 @@ public class OMEROMacroFunctions {
      *
      * @return The uploaded file ID.
      */
-    public long addFile(String type, long id, String path) {
+    public Number addFile(String type, Number id, String path) {
         long fileId = -1;
 
         File file = new File(path);
@@ -533,9 +546,9 @@ public class OMEROMacroFunctions {
      *
      * @param id The file ID.
      */
-    public void deleteFile(long id) {
+    public void deleteFile(Number id) {
         try {
-            client.deleteFile(id);
+            client.deleteFile(id.longValue());
         } catch (ServiceException | AccessException | ExecutionException | OMEROServerError e) {
             IJ.error("Could not delete file: " + e.getMessage());
         } catch (InterruptedException e) {
@@ -577,6 +590,23 @@ public class OMEROMacroFunctions {
 
 
     /**
+     * Adds the content of a ResultsTable (for an image) to the table with the specified name.
+     *
+     * @param tableName   The table name.
+     * @param resultsName The ResultsTable name.
+     * @param imageId     The image ID (can be null).
+     * @param property    The ROI property to group shapes.
+     */
+    public void addToTable(String tableName, String resultsName, Number imageId, String property) {
+        Long         imageID = imageId == null ? null : imageId.longValue();
+        ResultsTable rt      = getTable(resultsName);
+        RoiManager   rm      = RoiManager.getRoiManager();
+        List<Roi>    ijRois  = Arrays.asList(rm.getRoisAsArray());
+        addToTable(tableName, rt, imageID, ijRois, property);
+    }
+
+
+    /**
      * Saves the specified table as a file, using the specified delimiter.
      *
      * @param tableName The table name.
@@ -602,7 +632,7 @@ public class OMEROMacroFunctions {
      * @param type      The object type.
      * @param id        The object ID.
      */
-    public void saveTable(String tableName, String type, long id) {
+    public void saveTable(String tableName, String type, Number id) {
         GenericRepositoryObjectWrapper<?> object = getRepositoryObject(type, id);
         if (object != null) {
             TableWrapper table = tables.get(tableName);
@@ -643,7 +673,7 @@ public class OMEROMacroFunctions {
      *
      * @return The tag ID.
      */
-    public long createTag(String name, String description) {
+    public Number createTag(String name, String description) {
         long id = -1;
         try {
             TagAnnotationWrapper tag = new TagAnnotationWrapper(client, name, description);
@@ -663,7 +693,7 @@ public class OMEROMacroFunctions {
      *
      * @return The project ID.
      */
-    public long createProject(String name, String description) {
+    public Number createProject(String name, String description) {
         long id = -1;
         try {
             ProjectWrapper project = new ProjectWrapper(client, name, description);
@@ -684,12 +714,12 @@ public class OMEROMacroFunctions {
      *
      * @return The dataset ID.
      */
-    public long createDataset(String name, String description, Long projectId) {
+    public Number createDataset(String name, String description, Number projectId) {
         long id = -1;
         try {
             DatasetWrapper dataset;
             if (projectId != null) {
-                dataset = client.getProject(projectId).addDataset(client, name, description);
+                dataset = client.getProject(projectId.longValue()).addDataset(client, name, description);
             } else {
                 dataset = new DatasetWrapper(name, description);
                 dataset.saveAndUpdate(client);
@@ -708,7 +738,7 @@ public class OMEROMacroFunctions {
      * @param type The object type.
      * @param id   The object ID.
      */
-    public void delete(String type, long id) {
+    public void delete(String type, Number id) {
         GenericObjectWrapper<?> object = getObject(type, id);
         try {
             if (object != null) client.delete(object);
@@ -840,7 +870,7 @@ public class OMEROMacroFunctions {
      *
      * @return The comma-delimited list of object IDs.
      */
-    public String list(String type, String parent, long id) {
+    public String list(String type, String parent, Number id) {
         String singularParent = singularType(parent);
         String singularType   = singularType(type);
 
@@ -863,7 +893,7 @@ public class OMEROMacroFunctions {
                     objects = listForPlate(type, id);
                     break;
                 case WELL:
-                    WellWrapper well = client.getWell(id);
+                    WellWrapper well = client.getWell(id.longValue());
                     if (IMAGE.equals(singularType)) {
                         objects = well.getWellSamples().stream()
                                       .map(WellSampleWrapper::getImage)
@@ -876,7 +906,7 @@ public class OMEROMacroFunctions {
                     break;
                 case IMAGE:
                     if (TAG.equals(singularType)) {
-                        objects = client.getImage(id).getTags(client);
+                        objects = client.getImage(id.longValue()).getTags(client);
                     } else {
                         IJ.error("Invalid type: " + type + ". Only possible value is: tags.");
                     }
@@ -930,13 +960,13 @@ public class OMEROMacroFunctions {
      * @param type2 The second object type.
      * @param id2   The second object ID.
      */
-    public void link(String type1, long id1, String type2, long id2) {
+    public void link(String type1, Number id1, String type2, Number id2) {
         String t1 = singularType(type1);
         String t2 = singularType(type2);
 
         Map<String, Long> map = new HashMap<>(2);
-        map.put(t1, id1);
-        map.put(t2, id2);
+        map.put(t1, id1.longValue());
+        map.put(t2, id2.longValue());
 
         Long projectId = map.get(PROJECT);
         Long datasetId = map.get(DATASET);
@@ -974,13 +1004,13 @@ public class OMEROMacroFunctions {
      * @param type2 The second object type.
      * @param id2   The second object ID.
      */
-    public void unlink(String type1, long id1, String type2, long id2) {
+    public void unlink(String type1, Number id1, String type2, Number id2) {
         String t1 = singularType(type1);
         String t2 = singularType(type2);
 
         Map<String, Long> map = new HashMap<>(2);
-        map.put(t1, id1);
-        map.put(t2, id2);
+        map.put(t1, id1.longValue());
+        map.put(t2, id2.longValue());
 
         Long projectId = map.get(PROJECT);
         Long datasetId = map.get(DATASET);
@@ -1021,7 +1051,7 @@ public class OMEROMacroFunctions {
      *
      * @return The object name.
      */
-    public String getName(String type, long id) {
+    public String getName(String type, Number id) {
         String name = null;
 
         GenericObjectWrapper<?> object = getObject(type, id);
@@ -1041,10 +1071,10 @@ public class OMEROMacroFunctions {
      *
      * @return The image, as an {@link ImagePlus}.
      */
-    public ImagePlus getImage(long id) {
+    public ImagePlus getImage(Number id) {
         ImagePlus imp = null;
         try {
-            ImageWrapper image = client.getImage(id);
+            ImageWrapper image = client.getImage(id.longValue());
             imp = image.toImagePlus(client);
         } catch (ServiceException | AccessException | ExecutionException | NoSuchElementException e) {
             IJ.error("Could not retrieve image: " + e.getMessage());
@@ -1058,15 +1088,15 @@ public class OMEROMacroFunctions {
      *
      * @param imp       The image in ImageJ.
      * @param id        The image ID on OMERO.
-     * @param toOverlay Whether to put ROIs on the overlay.
+     * @param toOverlay Whether to put ROIs on the overlay (null or 0 puts them in the ROI Manager).
      * @param property  The ROI property to group shapes.
      *
      * @return The number of (2D) ROIs loaded in ImageJ.
      */
-    public int getROIs(ImagePlus imp, long id, boolean toOverlay, String property) {
+    public Number getROIs(ImagePlus imp, Number id, Number toOverlay, String property) {
         List<ROIWrapper> rois = new ArrayList<>(0);
         try {
-            ImageWrapper image = client.getImage(id);
+            ImageWrapper image = client.getImage(id.longValue());
             rois = image.getROIs(client);
         } catch (ServiceException | AccessException | ExecutionException e) {
             IJ.error("Could not retrieve ROIs: " + e.getMessage());
@@ -1074,7 +1104,7 @@ public class OMEROMacroFunctions {
 
         List<Roi> ijRois = ROIWrapper.toImageJ(rois, property);
 
-        if (toOverlay) {
+        if (toOverlay != null && toOverlay.doubleValue() != 0) {
             Overlay overlay = imp.getOverlay();
             if (overlay == null) {
                 overlay = new Overlay();
@@ -1105,10 +1135,10 @@ public class OMEROMacroFunctions {
      *
      * @return The number of (4D) ROIs saved on OMERO.
      */
-    public int saveROIs(ImagePlus imp, long id, String property) {
+    public Number saveROIs(ImagePlus imp, Number id, String property) {
         int result = 0;
         try {
-            ImageWrapper image = client.getImage(id);
+            ImageWrapper image = client.getImage(id.longValue());
 
             Overlay overlay = imp.getOverlay();
             if (overlay != null) {
@@ -1155,11 +1185,11 @@ public class OMEROMacroFunctions {
      *
      * @return The number of ROIs that were deleted.
      */
-    public int removeROIs(long id) {
+    public Number removeROIs(Number id) {
 
         int removed = 0;
         try {
-            ImageWrapper     image = client.getImage(id);
+            ImageWrapper     image = client.getImage(id.longValue());
             List<ROIWrapper> rois  = image.getROIs(client);
             for (ROIWrapper roi : rois) {
                 client.delete(roi);

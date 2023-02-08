@@ -19,78 +19,21 @@ package fr.igred.ij.plugin;
 import fr.igred.ij.macro.OMEROMacroFunctions;
 import ij.IJ;
 import ij.ImagePlus;
-import ij.gui.Roi;
 import ij.macro.ExtensionDescriptor;
 import ij.macro.Functions;
 import ij.macro.MacroExtension;
-import ij.measure.ResultsTable;
 import ij.plugin.PlugIn;
-import ij.plugin.frame.RoiManager;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
-import java.util.List;
 
 import static ij.macro.ExtensionDescriptor.newDescriptor;
 
 
 public class OMEROMacroExtension extends OMEROMacroFunctions implements PlugIn, MacroExtension {
 
-    private final ExtensionDescriptor[] extensions = {
-            newDescriptor("connectToOMERO", this, ARG_STRING, ARG_NUMBER, ARG_STRING, ARG_STRING),
-            newDescriptor("switchGroup", this, ARG_NUMBER),
-            newDescriptor("listForUser", this, ARG_STRING),
-            newDescriptor("list", this, ARG_STRING, ARG_STRING + ARG_OPTIONAL, ARG_NUMBER + ARG_OPTIONAL),
-            newDescriptor("createDataset", this, ARG_STRING, ARG_STRING, ARG_NUMBER + ARG_OPTIONAL),
-            newDescriptor("createProject", this, ARG_STRING, ARG_STRING),
-            newDescriptor("createTag", this, ARG_STRING, ARG_STRING),
-            newDescriptor("link", this, ARG_STRING, ARG_NUMBER, ARG_STRING, ARG_NUMBER),
-            newDescriptor("unlink", this, ARG_STRING, ARG_NUMBER, ARG_STRING, ARG_NUMBER),
-            newDescriptor("addFile", this, ARG_STRING, ARG_NUMBER, ARG_STRING),
-            newDescriptor("addToTable", this, ARG_STRING,
-                          ARG_STRING + ARG_OPTIONAL, ARG_NUMBER + ARG_OPTIONAL, ARG_STRING + ARG_OPTIONAL),
-            newDescriptor("saveTable", this, ARG_STRING, ARG_STRING, ARG_NUMBER),
-            newDescriptor("saveTableAsFile", this, ARG_STRING, ARG_STRING, ARG_STRING + ARG_OPTIONAL),
-            newDescriptor("clearTable", this, ARG_STRING),
-            newDescriptor("importImage", this, ARG_NUMBER, ARG_STRING + ARG_OPTIONAL),
-            newDescriptor("downloadImage", this, ARG_NUMBER, ARG_STRING),
-            newDescriptor("delete", this, ARG_STRING, ARG_NUMBER),
-            newDescriptor("getName", this, ARG_STRING, ARG_NUMBER),
-            newDescriptor("getImage", this, ARG_NUMBER),
-            newDescriptor("getROIs", this, ARG_NUMBER, ARG_NUMBER + ARG_OPTIONAL, ARG_STRING + ARG_OPTIONAL),
-            newDescriptor("saveROIs", this, ARG_NUMBER, ARG_STRING + ARG_OPTIONAL),
-            newDescriptor("removeROIs", this, ARG_NUMBER, ARG_STRING + ARG_OPTIONAL),
-            newDescriptor("sudo", this, ARG_STRING),
-            newDescriptor("endSudo", this),
-            newDescriptor("disconnect", this),
-            };
-
-
-    /**
-     * Converts a Double to a Long.
-     *
-     * @param d The Double.
-     *
-     * @return The corresponding Long.
-     */
-    private static Long doubleToLong(Double d) {
-        return d != null ? d.longValue() : null;
-    }
-
-
-    /**
-     * Gets the results table with the specified name, or the active table if null.
-     *
-     * @param resultsName The name of the ResultsTable.
-     *
-     * @return The corresponding ResultsTable.
-     */
-    private static ResultsTable getTable(String resultsName) {
-        if (resultsName == null) return ResultsTable.getResultsTable();
-        else return ResultsTable.getResultsTable(resultsName);
-    }
+    private final ExtensionDescriptor[] extensions = buildExtensions();
 
 
     @Override
@@ -127,9 +70,9 @@ public class OMEROMacroExtension extends OMEROMacroFunctions implements PlugIn, 
 
     @Override
     public String handleExtension(String name, Object[] args) {
-        long   id;
-        long   id1;
-        long   id2;
+        Number id;
+        Number id1;
+        Number id2;
         String type;
         String type1;
         String type2;
@@ -139,16 +82,16 @@ public class OMEROMacroExtension extends OMEROMacroFunctions implements PlugIn, 
         String results = null;
         switch (name) {
             case "connectToOMERO":
-                String host = ((String) args[0]);
-                int port = ((Double) args[1]).intValue();
-                String username = ((String) args[2]);
-                String password = ((String) args[3]);
-                boolean connected = connect(host, port, username, password);
+                String host = (String) args[0];
+                Number port = (Number) args[1];
+                String username = (String) args[2];
+                String password = (String) args[3];
+                String connected = connect(host, port, username, password);
                 results = String.valueOf(connected);
                 break;
 
             case "switchGroup":
-                long groupId = ((Double) args[0]).longValue();
+                Number groupId = (Number) args[0];
                 results = String.valueOf(switchGroup(groupId));
                 break;
 
@@ -157,31 +100,31 @@ public class OMEROMacroExtension extends OMEROMacroFunctions implements PlugIn, 
                 break;
 
             case "importImage":
-                long datasetId = ((Double) args[0]).longValue();
-                path = ((String) args[1]);
+                Number datasetId = (Number) args[0];
+                path = (String) args[1];
                 results = importImage(datasetId, path);
                 break;
 
             case "downloadImage":
-                id = ((Double) args[0]).longValue();
-                path = ((String) args[1]);
+                id = (Number) args[0];
+                path = (String) args[1];
                 results = downloadImage(id, path);
                 break;
 
             case "addFile":
                 type = (String) args[0];
-                id = ((Double) args[1]).longValue();
-                long fileId = addFile(type, id, (String) args[2]);
+                id = (Number) args[1];
+                Number fileId = addFile(type, id, (String) args[2]);
                 results = String.valueOf(fileId);
                 break;
 
             case "deleteFile":
-                id = ((Double) args[0]).longValue();
+                id = (Number) args[0];
                 deleteFile(id);
                 break;
 
             case "createDataset":
-                Long projectId = doubleToLong((Double) args[2]);
+                Number projectId = (Number) args[2];
                 id = createDataset((String) args[0], (String) args[1], projectId);
                 results = String.valueOf(id);
                 break;
@@ -192,21 +135,17 @@ public class OMEROMacroExtension extends OMEROMacroFunctions implements PlugIn, 
                 break;
 
             case "createTag":
-                long tagId = createTag((String) args[0], (String) args[1]);
+                Number tagId = createTag((String) args[0], (String) args[1]);
                 results = String.valueOf(tagId);
                 break;
 
             case "addToTable":
                 tableName = (String) args[0];
                 String resultsName = (String) args[1];
-                Long imageId = doubleToLong((Double) args[2]);
+                Number imageId = (Number) args[2];
                 property = (String) args[3];
 
-                ResultsTable rt = getTable(resultsName);
-                RoiManager rm = RoiManager.getRoiManager();
-                List<Roi> ijRois = Arrays.asList(rm.getRoisAsArray());
-
-                addToTable(tableName, rt, imageId, ijRois, property);
+                addToTable(tableName, resultsName, imageId, property);
                 break;
 
             case "saveTableAsFile":
@@ -219,7 +158,7 @@ public class OMEROMacroExtension extends OMEROMacroFunctions implements PlugIn, 
             case "saveTable":
                 tableName = (String) args[0];
                 type = (String) args[1];
-                id = ((Double) args[2]).longValue();
+                id = (Number) args[2];
                 saveTable(tableName, type, id);
                 break;
 
@@ -230,7 +169,7 @@ public class OMEROMacroExtension extends OMEROMacroFunctions implements PlugIn, 
 
             case "delete":
                 type = (String) args[0];
-                id = ((Double) args[1]).longValue();
+                id = (Number) args[1];
                 delete(type, id);
                 break;
 
@@ -242,7 +181,7 @@ public class OMEROMacroExtension extends OMEROMacroFunctions implements PlugIn, 
                     results = list(type, (String) args[1]);
                 } else if (args[1] != null) {
                     String parentType = (String) args[1];
-                    id = ((Double) args[2]).longValue();
+                    id = ((Number) args[2]).longValue();
                     results = list(type, parentType, id);
                 } else {
                     IJ.error("Second argument should not be null.");
@@ -251,28 +190,28 @@ public class OMEROMacroExtension extends OMEROMacroFunctions implements PlugIn, 
 
             case "link":
                 type1 = (String) args[0];
-                id1 = ((Double) args[1]).longValue();
+                id1 = (Number) args[1];
                 type2 = (String) args[2];
-                id2 = ((Double) args[3]).longValue();
+                id2 = (Number) args[3];
                 link(type1, id1, type2, id2);
                 break;
 
             case "unlink":
                 type1 = (String) args[0];
-                id1 = ((Double) args[1]).longValue();
+                id1 = (Number) args[1];
                 type2 = (String) args[2];
-                id2 = ((Double) args[3]).longValue();
+                id2 = (Number) args[3];
                 unlink(type1, id1, type2, id2);
                 break;
 
             case "getName":
                 type = (String) args[0];
-                id = ((Double) args[1]).longValue();
+                id = (Number) args[1];
                 results = getName(type, id);
                 break;
 
             case "getImage":
-                ImagePlus imp = getImage(((Double) args[0]).longValue());
+                ImagePlus imp = getImage((Number) args[0]);
                 if (imp != null) {
                     imp.show();
                     results = String.valueOf(imp.getID());
@@ -280,24 +219,23 @@ public class OMEROMacroExtension extends OMEROMacroFunctions implements PlugIn, 
                 break;
 
             case "getROIs":
-                id = ((Double) args[0]).longValue();
-                Double ov = (Double) args[1];
-                boolean toOverlay = ov != null && ov != 0;
+                id = (Number) args[0];
+                Number toOverlay = (Number) args[1];
                 property = (String) args[2];
-                int nIJRois = getROIs(IJ.getImage(), id, toOverlay, property);
+                Number nIJRois = getROIs(IJ.getImage(), id, toOverlay, property);
                 results = String.valueOf(nIJRois);
                 break;
 
             case "saveROIs":
-                id = ((Double) args[0]).longValue();
+                id = (Number) args[0];
                 property = (String) args[1];
-                int nROIs = saveROIs(IJ.getImage(), id, property);
+                Number nROIs = saveROIs(IJ.getImage(), id, property);
                 results = String.valueOf(nROIs);
                 break;
 
             case "removeROIs":
-                id = ((Double) args[0]).longValue();
-                int removed = removeROIs(id);
+                id = (Number) args[0];
+                Number removed = removeROIs(id);
                 results = String.valueOf(removed);
                 break;
 
@@ -318,6 +256,38 @@ public class OMEROMacroExtension extends OMEROMacroFunctions implements PlugIn, 
         }
 
         return results;
+    }
+
+
+    private ExtensionDescriptor[] buildExtensions() {
+        return new ExtensionDescriptor[]{
+                newDescriptor("connectToOMERO", this, ARG_STRING, ARG_NUMBER, ARG_STRING, ARG_STRING),
+                newDescriptor("switchGroup", this, ARG_NUMBER),
+                newDescriptor("listForUser", this, ARG_STRING),
+                newDescriptor("list", this, ARG_STRING, ARG_STRING + ARG_OPTIONAL, ARG_NUMBER + ARG_OPTIONAL),
+                newDescriptor("createDataset", this, ARG_STRING, ARG_STRING, ARG_NUMBER + ARG_OPTIONAL),
+                newDescriptor("createProject", this, ARG_STRING, ARG_STRING),
+                newDescriptor("createTag", this, ARG_STRING, ARG_STRING),
+                newDescriptor("link", this, ARG_STRING, ARG_NUMBER, ARG_STRING, ARG_NUMBER),
+                newDescriptor("unlink", this, ARG_STRING, ARG_NUMBER, ARG_STRING, ARG_NUMBER),
+                newDescriptor("addFile", this, ARG_STRING, ARG_NUMBER, ARG_STRING),
+                newDescriptor("addToTable", this, ARG_STRING,
+                              ARG_STRING + ARG_OPTIONAL, ARG_NUMBER + ARG_OPTIONAL, ARG_STRING + ARG_OPTIONAL),
+                newDescriptor("saveTable", this, ARG_STRING, ARG_STRING, ARG_NUMBER),
+                newDescriptor("saveTableAsFile", this, ARG_STRING, ARG_STRING, ARG_STRING + ARG_OPTIONAL),
+                newDescriptor("clearTable", this, ARG_STRING),
+                newDescriptor("importImage", this, ARG_NUMBER, ARG_STRING + ARG_OPTIONAL),
+                newDescriptor("downloadImage", this, ARG_NUMBER, ARG_STRING),
+                newDescriptor("delete", this, ARG_STRING, ARG_NUMBER),
+                newDescriptor("getName", this, ARG_STRING, ARG_NUMBER),
+                newDescriptor("getImage", this, ARG_NUMBER),
+                newDescriptor("getROIs", this, ARG_NUMBER, ARG_NUMBER + ARG_OPTIONAL, ARG_STRING + ARG_OPTIONAL),
+                newDescriptor("saveROIs", this, ARG_NUMBER, ARG_STRING + ARG_OPTIONAL),
+                newDescriptor("removeROIs", this, ARG_NUMBER, ARG_STRING + ARG_OPTIONAL),
+                newDescriptor("sudo", this, ARG_STRING),
+                newDescriptor("endSudo", this),
+                newDescriptor("disconnect", this),
+                };
     }
 
 }
