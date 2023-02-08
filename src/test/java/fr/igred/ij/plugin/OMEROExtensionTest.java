@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2021 GReD
+ *  Copyright (C) 2021-2023 GReD
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
@@ -38,6 +38,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.SecureRandom;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -411,18 +412,24 @@ class OMEROExtensionTest {
 
     @Test
     void testTable() throws Exception {
+        long   imageId = 1L;
+        String label1  = "test";
+        String label2  = "test2";
+        double size1   = 25.023579d;
+        double size2   = 50.0d;
+
         ResultsTable rt1 = new ResultsTable();
         rt1.incrementCounter();
-        rt1.setLabel("test", 0);
-        rt1.setValue("Size", 0, 25.0);
+        rt1.setLabel(label1, 0);
+        rt1.setValue("Size", 0, size1);
 
         ResultsTable rt2 = new ResultsTable();
         rt2.incrementCounter();
-        rt2.setLabel("test2", 0);
-        rt2.setValue("Size", 0, 50.0);
+        rt2.setLabel(label2, 0);
+        rt2.setValue("Size", 0, size2);
 
-        ext.addToTable("test_table", rt1, 1L, new ArrayList<>(0), null);
-        ext.addToTable("test_table", rt2, 1L, new ArrayList<>(0), null);
+        ext.addToTable("test_table", rt1, imageId, new ArrayList<>(0), null);
+        ext.addToTable("test_table", rt2, imageId, new ArrayList<>(0), null);
 
         Object[] args2 = {"test_table", "dataset", 1.0d};
         ext.handleExtension("saveTable", args2);
@@ -430,14 +437,20 @@ class OMEROExtensionTest {
         File     textFile = new File("test.txt");
         Object[] args3    = {"test_table", textFile.getCanonicalPath(), null};
         ext.handleExtension("saveTableAsFile", args3);
-        List<String> expected = Arrays.asList("\"Image\"\t\"Label\"\t\"Size\"",
-                                              "\"1\"\t\"test\"\t\"25.0\"",
-                                              "\"1\"\t\"test2\"\t\"50.0\"");
+
+        NumberFormat formatter = NumberFormat.getInstance();
+        formatter.setMaximumFractionDigits(4);
+        String s1 = formatter.format(size1);
+        String s2 = formatter.format(size2);
+
+        String line1 = "\"Image\"\t\"Label\"\t\"Size\"";
+        String line2 = String.format("\"%d\"\t\"%s\"\t\"%s\"", imageId, label1, s1);
+        String line3 = String.format("\"%d\"\t\"%s\"\t\"%s\"", imageId, label2, s2);
+
+        List<String> expected = Arrays.asList(line1, line2, line3);
+
         List<String> actual = Files.readAllLines(textFile.toPath());
-        assertEquals(expected.size(), actual.size());
-        for (int i = 0; i < expected.size(); i++) {
-            assertEquals(expected.get(i), actual.get(i));
-        }
+        assertEquals(expected, actual);
         Files.deleteIfExists(textFile.toPath());
 
         Client client = new Client();
@@ -446,8 +459,8 @@ class OMEROExtensionTest {
         client.disconnect();
         assertEquals(1, tables.size());
         assertEquals(2, tables.get(0).getRowCount());
-        assertEquals(25.0, tables.get(0).getData(0, 2));
-        assertEquals(50.0, tables.get(0).getData(1, 2));
+        assertEquals(size1, tables.get(0).getData(0, 2));
+        assertEquals(size2, tables.get(0).getData(1, 2));
     }
 
 }

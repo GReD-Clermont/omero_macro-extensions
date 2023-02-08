@@ -6,7 +6,7 @@
     <parent>
         <artifactId>pom-scijava</artifactId>
         <groupId>org.scijava</groupId>
-        <version>32.0.0</version>
+        <version>33.2.0</version>
     </parent>
 
     <groupId>fr.igred</groupId>
@@ -92,7 +92,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <license.licenseName>gpl_v2</license.licenseName>
         <license.copyrightOwners>GReD</license.copyrightOwners>
-        <simple-omero-client.version>5.9.2</simple-omero-client.version>
+        <simple-omero-client.version>5.10.0</simple-omero-client.version>
         <!-- 3.2.0 erroneously detects runtime dependencies as test-only. -->
         <maven-dependency-plugin.version>3.3.0</maven-dependency-plugin.version>
         <!-- User surefire 3.0.0-M7 for JUnit5. -->

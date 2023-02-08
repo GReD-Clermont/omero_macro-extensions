@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2021 GReD
+ *  Copyright (C) 2021-2023 GReD
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
@@ -1155,9 +1155,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
 
                 List<ROIWrapper> rois = ROIWrapper.fromImageJ(ijRois, property);
                 rois.forEach(roi -> roi.setImage(image));
-                for (ROIWrapper roi : rois) {
-                    image.saveROI(client, roi);
-                }
+                image.saveROIs(client, rois);
                 result += rois.size();
                 overlay.clear();
                 List<Roi> newRois = ROIWrapper.toImageJ(rois, property);
@@ -1173,9 +1171,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
 
                 List<ROIWrapper> rois = ROIWrapper.fromImageJ(ijRois, property);
                 rois.forEach(roi -> roi.setImage(image));
-                for (ROIWrapper roi : rois) {
-                    image.saveROI(client, roi);
-                }
+                image.saveROIs(client, rois);
                 result += rois.size();
                 rm.reset();
                 List<Roi> newRois = ROIWrapper.toImageJ(rois, property);
