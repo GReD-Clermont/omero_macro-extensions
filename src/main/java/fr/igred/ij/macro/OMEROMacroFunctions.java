@@ -73,7 +73,7 @@ public class OMEROMacroFunctions {
 
     private static final String ERROR_POSSIBLE_VALUES = "%s: %s. Possible values are: %s";
     private static final String ERROR_RETRIEVE_IN     = "Could not retrieve %s in %s: %s";
-    public static final  char   DEFAULT_DELIMITER     = '\t';
+    private static final char   DEFAULT_DELIMITER     = '\t';
 
     private final Map<String, TableWrapper> tables = new HashMap<>(1);
 

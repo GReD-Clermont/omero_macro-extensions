@@ -42,6 +42,7 @@ import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -55,10 +56,11 @@ class OMEROExtensionTest {
 
     private static final Object[] NULL_ARRAY = {null, null, null, null};
 
-    private static final String HOSTNAME = "omero";
-    private static final double PORT     = 4064;
-    private static final String USERNAME = "testUser";
-    private static final String PASSWORD = "password";
+    private static final String HOSTNAME  = "omero";
+    private static final double PORT      = 4064;
+    private static final String USERNAME  = "testUser";
+    private static final String PASSWORD  = "password";
+    public static final  char   ALT_DELIM = ';';
 
     private OMEROMacroExtension ext;
 
@@ -85,38 +87,38 @@ class OMEROExtensionTest {
         Object[]     args2   = {initial};
         String       result  = ext.handleExtension("switchGroup", args);
         String       result2 = ext.handleExtension("switchGroup", args2);
-        assertEquals(target, Double.parseDouble(result));
-        assertEquals(initial, Double.parseDouble(result2));
+        assertEquals(target, Double.parseDouble(result), "Wrong group after switching.");
+        assertEquals(initial, Double.parseDouble(result2), "Wrong group after switching back.");
     }
 
 
     @ParameterizedTest
-    @CsvSource(delimiter = ';', value = {USERNAME + ";2",
-                                         "all;-1",
-                                         "'';-1",
-                                         ";-1",})
+    @CsvSource({USERNAME + ",2",
+                "all,-1",
+                "'',-1",
+                ",-1",})
     void testListForUser(String user, double output) {
         Object[] args    = {user};
         String   result  = ext.handleExtension("listForUser", args);
         Object[] args2   = {"projects", null, null};
         String   result2 = ext.handleExtension("list", args2);
-        assertEquals(output, Double.parseDouble(result));
-        assertEquals("1,2", result2);
+        assertEquals(output, Double.parseDouble(result), "Wrong user ID.");
+        assertEquals("1,2", result2, "Wrong project IDs.");
     }
 
 
     @ParameterizedTest
-    @CsvSource(delimiter = ';', value = {"list;projects;1,2",
-                                         "list;project;1,2",
-                                         "list;datasets;1,2,3",
-                                         "list;dataset;1,2,3",
-                                         "list;images;1,2,3,4,5,6,7,8,9,10",
-                                         "list;image;1,2,3,4,5,6,7,8,9,10",
-                                         "list;screens;1,2",
-                                         "list;plates;1,2,3",
-                                         "list;wells;1,2,3,4,5",
-                                         "list;tags;1,2,3",
-                                         "list;tag;1,2,3",})
+    @CsvSource(delimiter = ALT_DELIM, value = {"list;projects;1,2",
+                                               "list;project;1,2",
+                                               "list;datasets;1,2,3",
+                                               "list;dataset;1,2,3",
+                                               "list;images;1,2,3,4,5,6,7,8,9,10",
+                                               "list;image;1,2,3,4,5,6,7,8,9,10",
+                                               "list;screens;1,2",
+                                               "list;plates;1,2,3",
+                                               "list;wells;1,2,3,4,5",
+                                               "list;tags;1,2,3",
+                                               "list;tag;1,2,3",})
     void testListAll(String extension, String type, String output) {
         Object[] args   = {type, null, null};
         String   result = ext.handleExtension(extension, args);
@@ -125,16 +127,16 @@ class OMEROExtensionTest {
 
 
     @ParameterizedTest
-    @CsvSource(delimiter = ';', value = {"list;projects;TestProject;1,2",
-                                         "list;project;TestProject;1,2",
-                                         "list;datasets;TestDatasetImport;2",
-                                         "list;dataset;TestDatasetImport;2",
-                                         "list;images;image1.fake;1,2,4",
-                                         "list;image;image1.fake;1,2,4",
-                                         "list;screen;TestScreen;1",
-                                         "list;plate;Plate Name 0;1,2",
-                                         "list;tags;tag2;2",
-                                         "list;tag;tag2;2",})
+    @CsvSource(delimiter = ALT_DELIM, value = {"list;projects;TestProject;1,2",
+                                               "list;project;TestProject;1,2",
+                                               "list;datasets;TestDatasetImport;2",
+                                               "list;dataset;TestDatasetImport;2",
+                                               "list;images;image1.fake;1,2,4",
+                                               "list;image;image1.fake;1,2,4",
+                                               "list;screen;TestScreen;1",
+                                               "list;plate;Plate Name 0;1,2",
+                                               "list;tags;tag2;2",
+                                               "list;tag;tag2;2",})
     void testListByName(String extension, String type, String name, String output) {
         Object[] args   = {type, name, null};
         String   result = ext.handleExtension(extension, args);
@@ -143,32 +145,32 @@ class OMEROExtensionTest {
 
 
     @ParameterizedTest
-    @CsvSource(delimiter = ';', value = {"list;datasets;project;1.0;1,2",
-                                         "list;dataset;projects;1.0;1,2",
-                                         "list;images;dataset;1.0;1,2,3",
-                                         "list;image;datasets;1.0;1,2,3",
-                                         "list;tags;image;1.0;1,2",
-                                         "list;tag;images;1.0;1,2",
-                                         "list;projects;tag;1.0;2",
-                                         "list;project;tags;1.0;2",
-                                         "list;datasets;tag;1.0;3",
-                                         "list;dataset;tags;1.0;3",
-                                         "list;images;project;1.0;1,2,3",
-                                         "list;image;projects;1.0;1,2,3",
-                                         "list;images;tag;1.0;1,2,4",
-                                         "list;image;tags;1.0;1,2,4",
-                                         "list;screens;tag;1.0;1",
-                                         "list;plates;tag;1.0;1",
-                                         "list;wells;tag;1.0;1",
-                                         "list;tags;screen;1.0;1",
-                                         "list;tags;plate;1.0;1",
-                                         "list;tags;well;1.0;1",
-                                         "list;plates;screen;2.0;2,3",
-                                         "list;wells;screen;2.0;2,3,4,5",
-                                         "list;images;screen;1.0;5,6",
-                                         "list;wells;plate;2.0;2,3",
-                                         "list;images;plate;2.0;7,8",
-                                         "list;images;well;1.0;5,6",})
+    @CsvSource(delimiter = ALT_DELIM, value = {"list;datasets;project;1.0;1,2",
+                                               "list;dataset;projects;1.0;1,2",
+                                               "list;images;dataset;1.0;1,2,3",
+                                               "list;image;datasets;1.0;1,2,3",
+                                               "list;tags;image;1.0;1,2",
+                                               "list;tag;images;1.0;1,2",
+                                               "list;projects;tag;1.0;2",
+                                               "list;project;tags;1.0;2",
+                                               "list;datasets;tag;1.0;3",
+                                               "list;dataset;tags;1.0;3",
+                                               "list;images;project;1.0;1,2,3",
+                                               "list;image;projects;1.0;1,2,3",
+                                               "list;images;tag;1.0;1,2,4",
+                                               "list;image;tags;1.0;1,2,4",
+                                               "list;screens;tag;1.0;1",
+                                               "list;plates;tag;1.0;1",
+                                               "list;wells;tag;1.0;1",
+                                               "list;tags;screen;1.0;1",
+                                               "list;tags;plate;1.0;1",
+                                               "list;tags;well;1.0;1",
+                                               "list;plates;screen;2.0;2,3",
+                                               "list;wells;screen;2.0;2,3,4,5",
+                                               "list;images;screen;1.0;5,6",
+                                               "list;wells;plate;2.0;2,3",
+                                               "list;images;plate;2.0;7,8",
+                                               "list;images;well;1.0;5,6",})
     void testListFrom(String extension, String type, String parent, double id, String output) {
         Object[] args   = {type, parent, id};
         String   result = ext.handleExtension(extension, args);
@@ -182,16 +184,16 @@ class OMEROExtensionTest {
 
 
     @ParameterizedTest
-    @CsvSource(delimiter = ';', value = {"getName;project;1.0;TestProject",
-                                         "getName;projects;1.0;TestProject",
-                                         "getName;dataset;1.0;TestDataset",
-                                         "getName;datasets;1.0;TestDataset",
-                                         "getName;images;1.0;image1.fake",
-                                         "getName;image;1.0;image1.fake",
-                                         "getName;screen;1.0;TestScreen",
-                                         "getName;plate;2.0;Plate Name 0",
-                                         "getName;well;1.0;Well A-1",
-                                         "getName;tag;1.0;tag1",})
+    @CsvSource({"getName,project,1.0,TestProject",
+                "getName,projects,1.0,TestProject",
+                "getName,dataset,1.0,TestDataset",
+                "getName,datasets,1.0,TestDataset",
+                "getName,images,1.0,image1.fake",
+                "getName,image,1.0,image1.fake",
+                "getName,screen,1.0,TestScreen",
+                "getName,plate,2.0,Plate Name 0",
+                "getName,well,1.0,Well A-1",
+                "getName,tag,1.0,tag1",})
     void testGetName(String extension, String type, double id, String output) {
         Object[] args   = {type, id};
         String   result = ext.handleExtension(extension, args);
@@ -206,20 +208,20 @@ class OMEROExtensionTest {
         double   id     = Double.parseDouble(result);
         Object[] args2  = {"project", id};
         ext.handleExtension("delete", args2);
-        assertNotEquals("", result);
+        assertNotEquals("", result, "Project creation failed.");
     }
 
 
     @ParameterizedTest
     @NullSource
-    @ValueSource(doubles = {1.0})
+    @ValueSource(doubles = 1.0)
     void testCreateDataset(Double projectId) {
         Object[] args   = {"toDelete", "toBeDeleted", projectId};
         String   result = ext.handleExtension("createDataset", args);
         double   id     = Double.parseDouble(result);
         Object[] args2  = {"dataset", id};
         ext.handleExtension("delete", args2);
-        assertNotEquals("", result);
+        assertNotEquals("", result, "Dataset creation failed.");
     }
 
 
@@ -233,18 +235,18 @@ class OMEROExtensionTest {
         ext.handleExtension("link", args2);
         Object[] args3 = {"tag", id};
         ext.handleExtension("delete", args3);
-        assertNotNull(id);
+        assertNotNull(id, "Tag creation and linking failed.");
     }
 
 
     @ParameterizedTest
-    @CsvSource(delimiter = ';', value = {"tag;1.0;project;2.0",
-                                         "tag;1.0;dataset;3.0",
-                                         "tag;1.0;screen;1.0",
-                                         "tag;1.0;plate;1.0",
-                                         "tag;1.0;well;1.0",
-                                         "dataset;3.0;project;2.0",
-                                         "image;1.0;dataset;1.0",})
+    @CsvSource({"tag,1.0,project,2.0",
+                "tag,1.0,dataset,3.0",
+                "tag,1.0,screen,1.0",
+                "tag,1.0,plate,1.0",
+                "tag,1.0,well,1.0",
+                "dataset,3.0,project,2.0",
+                "image,1.0,dataset,1.0",})
     void testUnlinkThenLink(String type1, double id1, String type2, double id2) {
         Object[] listArgs = {type1, type2, id2};
         Object[] args     = {type1, id1, type2, id2};
@@ -266,12 +268,12 @@ class OMEROExtensionTest {
 
 
     @ParameterizedTest
-    @CsvSource(delimiter = ';', value = {"project;1.0;test1.txt",
-                                         "projects;1.0;test2.txt",
-                                         "dataset;1.0;test3.txt",
-                                         "datasets;1.0;test4.txt",
-                                         "images;1.0;test5.txt",
-                                         "image;1.0;test6.txt",})
+    @CsvSource({"project,1.0,test1.txt",
+                "projects,1.0,test2.txt",
+                "dataset,1.0,test3.txt",
+                "datasets,1.0,test4.txt",
+                "images,1.0,test5.txt",
+                "image,1.0,test6.txt",})
     void testAddAndDeleteFile(String type, double id, String filename) throws Exception {
         final int size = 2 * 262144 + 20;
 
@@ -290,7 +292,7 @@ class OMEROExtensionTest {
 
         Object[] args   = {type, id, filename};
         String   result = ext.handleExtension("addFile", args);
-        assertNotEquals(-1L, Long.parseLong(result));
+        assertNotEquals(-1L, Long.parseLong(result), "Attachment upload failed.");
 
         if (!file.delete())
             System.err.println("\"" + file.getCanonicalPath() + "\" could not be deleted.");
@@ -307,8 +309,8 @@ class OMEROExtensionTest {
         String   result = ext.handleExtension("list", args);
 
         Long[] ids = Arrays.stream(result.split(",")).map(Long::parseLong).sorted().toArray(Long[]::new);
-        assertEquals(3, ids.length);
-        assertEquals(1L, ids[0]);
+        assertEquals(3, ids.length, "Wrong number of wells.");
+        assertEquals(1L, ids[0], "Wrong well ID.");
     }
 
 
@@ -316,16 +318,23 @@ class OMEROExtensionTest {
     void testGetImage() {
         final int size = 512;
         ImagePlus imp  = ext.getImage(1L);
-        assertEquals(size, imp.getWidth());
-        assertEquals(size, imp.getHeight());
+        assertEquals(size, imp.getWidth(), "Image width is incorrect.");
+        assertEquals(size, imp.getHeight(), "Image height is incorrect.");
     }
 
 
     @Test
     void testSaveAndGetROIs() {
-        ImagePlus imp     = ext.getImage(1L);
-        Overlay   overlay = new Overlay();
-        Roi       roi     = new Roi(25, 30, 70, 50);
+        ImagePlus imp = ext.getImage(1L);
+
+        Random random = new SecureRandom();
+        double x      = random.nextDouble() * (imp.getWidth() - 10);
+        double y      = random.nextDouble() * (imp.getHeight() - 10);
+        double w      = random.nextDouble() * (imp.getWidth() - x);
+        double h      = random.nextDouble() * (imp.getHeight() - y);
+
+        Overlay overlay = new Overlay();
+        Roi     roi     = new Roi(x, y, w, h);
         roi.setImage(imp);
         overlay.add(roi);
         imp.setOverlay(overlay);
@@ -336,10 +345,10 @@ class OMEROExtensionTest {
         Number clearedROIs = ext.getROIs(imp, 1L, 1.0, "");
 
 
-        assertEquals(1, savedROIs);
-        assertEquals(1, loadedROIs);
-        assertEquals(1, imp.getOverlay().size());
-        assertEquals(0, clearedROIs);
+        assertEquals(1, savedROIs, "Incorrect number of saved ROIs.");
+        assertEquals(1, loadedROIs, "Incorrect number of loaded ROIs.");
+        assertEquals(1, imp.getOverlay().size(), "Incorrect number of ROIs in overlay.");
+        assertEquals(0, clearedROIs, "ROIs were not properly cleared.");
     }
 
 
@@ -354,15 +363,15 @@ class OMEROExtensionTest {
         Object[] args1   = {2, path};
         String   listIds = ext.handleExtension("importImage", args1);
         long[]   ids     = Arrays.stream(listIds.split(",")).mapToLong(Long::parseLong).toArray();
-        assertNotNull(ids);
-        assertEquals(1, ids.length);
+        assertNotNull(ids, "Import did not yield image IDs.");
+        assertEquals(1, ids.length, "Incorrect number of imported images.");
 
         Object[] args2 = {"Image", (double) ids[0]};
         ext.handleExtension("delete", args2);
 
         Object[] args3    = {"image", "dataset", 2};
         String   listIds2 = ext.handleExtension("list", args3);
-        assertEquals("", listIds2);
+        assertEquals("", listIds2, "Images were not properly deleted.");
         Files.deleteIfExists(f.toPath());
     }
 
@@ -373,9 +382,9 @@ class OMEROExtensionTest {
         String     results = ext.handleExtension("downloadImage", args);
         String[]   paths   = results.split(",");
         List<File> files   = Arrays.stream(paths).map(File::new).collect(Collectors.toList());
-        assertEquals(2, paths.length);
-        assertTrue(files.get(0).exists());
-        assertTrue(files.get(1).exists());
+        assertEquals(2, paths.length, "Incorrect number of files downloaded.");
+        assertTrue(files.get(0).exists(), "File 1 was not created.");
+        assertTrue(files.get(1).exists(), "File 2 was not created.");
         Files.deleteIfExists(files.get(0).toPath());
         Files.deleteIfExists(files.get(1).toPath());
     }
@@ -396,7 +405,7 @@ class OMEROExtensionTest {
         String result = ext.handleExtension("createTag", args3);
         double id     = Double.parseDouble(result);
 
-        Object[] args4 = {"tag", id, "project", 2.0};
+        Object[] args4 = {"tag", id, "project", 2};
 
         ext.handleExtension("link", args4);
         Object[] args5 = {"tag", id};
@@ -404,27 +413,29 @@ class OMEROExtensionTest {
         ext.handleExtension("delete", args5);
 
         ext.handleExtension("endSudo", NULL_ARRAY);
-        assertNotEquals("", result);
+        assertNotEquals("", result, "Tag was not created.");
     }
 
 
     @Test
     void testTable() throws Exception {
         long   imageId = 1L;
-        String label1  = "test";
-        String label2  = "test2";
-        double size1   = 25.023579d;
-        double size2   = 50.0d;
+
+        Random random = new SecureRandom();
+        double value1 = (double) random.nextInt(1000) / 10;
+        double value2 = (double) random.nextInt(1000) / 10;
+        String label1 = "test";
+        String label2 = "test2";
 
         ResultsTable rt1 = new ResultsTable();
         rt1.incrementCounter();
         rt1.setLabel(label1, 0);
-        rt1.setValue("Size", 0, size1);
+        rt1.setValue("Size", 0, value1);
 
         ResultsTable rt2 = new ResultsTable();
         rt2.incrementCounter();
         rt2.setLabel(label2, 0);
-        rt2.setValue("Size", 0, size2);
+        rt2.setValue("Size", 0, value2);
 
         ext.addToTable("test_table", rt1, imageId, new ArrayList<>(0), null);
         ext.addToTable("test_table", rt2, imageId, new ArrayList<>(0), null);
@@ -438,27 +449,27 @@ class OMEROExtensionTest {
 
         NumberFormat formatter = NumberFormat.getInstance();
         formatter.setMaximumFractionDigits(4);
-        String s1 = formatter.format(size1);
-        String s2 = formatter.format(size2);
+        String v1 = formatter.format(value1);
+        String v2 = formatter.format(value2);
 
         String line1 = "\"Image\"\t\"Label\"\t\"Size\"";
-        String line2 = String.format("\"%d\"\t\"%s\"\t\"%s\"", imageId, label1, s1);
-        String line3 = String.format("\"%d\"\t\"%s\"\t\"%s\"", imageId, label2, s2);
+        String line2 = String.format("\"%d\"\t\"%s\"\t\"%s\"", imageId, label1, v1);
+        String line3 = String.format("\"%d\"\t\"%s\"\t\"%s\"", imageId, label2, v2);
 
         List<String> expected = Arrays.asList(line1, line2, line3);
 
         List<String> actual = Files.readAllLines(textFile.toPath());
-        assertEquals(expected, actual);
+        assertEquals(expected, actual, "File content is incorrect.");
         Files.deleteIfExists(textFile.toPath());
 
         Client client = new Client();
         client.connect(HOSTNAME, (int) PORT, USERNAME, PASSWORD.toCharArray());
         List<TableWrapper> tables = client.getDataset(1L).getTables(client);
         client.disconnect();
-        assertEquals(1, tables.size());
-        assertEquals(2, tables.get(0).getRowCount());
-        assertEquals(size1, tables.get(0).getData(0, 2));
-        assertEquals(size2, tables.get(0).getData(1, 2));
+        assertEquals(1, tables.size(), "Wrong number of tables.");
+        assertEquals(2, tables.get(0).getRowCount(), "Wrong number of rows.");
+        assertEquals(value1, tables.get(0).getData(0, 2), "First line, third column is incorrect.");
+        assertEquals(value2, tables.get(0).getData(1, 2), "Second line, third column is incorrect.");
     }
 
 }

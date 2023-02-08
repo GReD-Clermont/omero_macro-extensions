@@ -29,11 +29,12 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 
 @ExtendWith(TestResultLogger.class)
@@ -43,20 +44,22 @@ class OMEROExtensionErrorTest {
 
     private final ByteArrayOutputStream outContent  = new ByteArrayOutputStream();
     private final ByteArrayOutputStream errContent  = new ByteArrayOutputStream();
-    private final PrintStream           originalOut = System.out;
-    private final PrintStream           originalErr = System.err;
+    @SuppressWarnings("UseOfSystemOutOrSystemErr")
+    private final PrintStream originalOut = System.out;
+    @SuppressWarnings("UseOfSystemOutOrSystemErr")
+    private final PrintStream originalErr = System.err;
 
     private OMEROMacroExtension ext;
 
 
     @BeforeEach
-    public void setUp() {
+    public void setUp() throws UnsupportedEncodingException {
         final double port = 4064;
         ext = new OMEROMacroExtension();
         Object[] args = {"omero", port, "testUser", "password"};
         ext.handleExtension("connectToOMERO", args);
-        System.setOut(new PrintStream(outContent));
-        System.setErr(new PrintStream(errContent));
+        System.setOut(new PrintStream(outContent, false, StandardCharsets.UTF_8.name()));
+        System.setErr(new PrintStream(errContent, false, StandardCharsets.UTF_8.name()));
     }
 
 
@@ -85,7 +88,7 @@ class OMEROExtensionErrorTest {
                 expected += result.toString("UTF-8");
             }
         }
-        assertEquals(expected.trim(), outContent.toString().trim());
+        assertEquals(expected.trim(), outContent.toString().trim(), "Help message is incorrect.");
     }
 
 
@@ -93,7 +96,7 @@ class OMEROExtensionErrorTest {
     void testNoSuchMethod() {
         ext.handleExtension("hello", NULL_ARRAY);
         String expected = "No such method: hello";
-        assertEquals(expected, outContent.toString().trim());
+        assertEquals(expected, outContent.toString().trim(), "\"No such method\" message is incorrect.");
     }
 
 
@@ -104,7 +107,7 @@ class OMEROExtensionErrorTest {
         Object[] args = {"omero", port, "omero", "password"};
         ext.handleExtension("connectToOMERO", args);
         String expected = "Could not connect: Cannot connect to OMERO";
-        assertEquals(expected, outContent.toString().trim());
+        assertEquals(expected, outContent.toString().trim(), "Connection error message is incorrect.");
     }
 
 
@@ -113,7 +116,7 @@ class OMEROExtensionErrorTest {
         Object[] args = {-1.0d, "."};
         ext.handleExtension("downloadImage", args);
         String expected = "Could not download image: Image -1 doesn't exist in this context";
-        assertEquals(expected, outContent.toString().trim());
+        assertEquals(expected, outContent.toString().trim(), "Downloading error message is incorrect.");
     }
 
 
@@ -123,13 +126,12 @@ class OMEROExtensionErrorTest {
         File   f    = new File("." + File.separator + path);
         if (!f.createNewFile()) {
             System.err.println("\"" + f.getCanonicalPath() + "\" could not be created.");
-            fail();
         }
 
         Object[] args1 = {-1.0d, path};
         ext.handleExtension("importImage", args1);
         String expected = "Could not import image: Dataset -1 doesn't exist in this context";
-        assertEquals(expected, outContent.toString().trim());
+        assertEquals(expected, outContent.toString().trim(), "Importing error message is incorrect.");
         Files.deleteIfExists(f.toPath());
     }
 
@@ -139,7 +141,7 @@ class OMEROExtensionErrorTest {
         Object[] args = {-1.0d};
         ext.handleExtension("getImage", args);
         String expected = "Could not retrieve image: Image -1 doesn't exist in this context";
-        assertEquals(expected, outContent.toString().trim());
+        assertEquals(expected, outContent.toString().trim(), "Image retrieval error message is incorrect.");
     }
 
 
@@ -148,7 +150,7 @@ class OMEROExtensionErrorTest {
         Object[] args = {"hello"};
         ext.handleExtension("listForUser", args);
         String expected = "Could not retrieve user: hello";
-        assertEquals(expected, outContent.toString().trim());
+        assertEquals(expected, outContent.toString().trim(), "List for user error message is incorrect.");
     }
 
 
@@ -157,7 +159,7 @@ class OMEROExtensionErrorTest {
         Object[] args = {"roger"};
         ext.handleExtension("sudo", args);
         String expected = "Could not switch user: User not found: roger";
-        assertEquals(expected, outContent.toString().trim());
+        assertEquals(expected, outContent.toString().trim(), "Sudo error message is incorrect.");
     }
 
 
@@ -165,7 +167,7 @@ class OMEROExtensionErrorTest {
     void testEndSudoError() {
         ext.handleExtension("endSudo", NULL_ARRAY);
         String expected = "No sudo has been used before.";
-        assertEquals(expected, outContent.toString().trim());
+        assertEquals(expected, outContent.toString().trim(), "End sudo error message is incorrect.");
     }
 
 
@@ -175,27 +177,27 @@ class OMEROExtensionErrorTest {
         Object[]     args      = {"dataset", null, datasetId};
         ext.handleExtension("list", args);
         String expected = "Second argument should not be null.";
-        assertEquals(expected, outContent.toString().trim());
+        assertEquals(expected, outContent.toString().trim(), "Invalid args error message is incorrect.");
     }
 
 
     @ParameterizedTest
-    @CsvSource(delimiter = ';', value = {"tag;hello;2",
-                                         "hello;project;2",
-                                         "hello;dataset;2",
-                                         "hello;image;2",
-                                         "hello;screen;2",
-                                         "hello;plate;2",
-                                         "hello;well;2",
-                                         "hello;tag;2",
-                                         "hello;TestDatasetImport;",
-                                         "hello;;",})
+    @CsvSource({"tag,hello,2",
+                "hello,project,2",
+                "hello,dataset,2",
+                "hello,image,2",
+                "hello,screen,2",
+                "hello,plate,2",
+                "hello,well,2",
+                "hello,tag,2",
+                "hello,TestDatasetImport,",
+                "hello,,",})
     void testListInvalidType(String type1, String type2, Double id) {
         Object[] args   = {type1, type2, id};
         String   output = ext.handleExtension("list", args);
         String   error  = outContent.toString().trim();
-        assertTrue(output.isEmpty());
-        assertTrue(error.startsWith("Invalid type: hello. "));
+        assertTrue(output.isEmpty(), "Output should be empty.");
+        assertTrue(error.startsWith("Invalid type: hello. "), "Invalid type error message is incorrect.");
     }
 
 
@@ -205,7 +207,7 @@ class OMEROExtensionErrorTest {
         Object[] args = {"tag", 1.0, "hello", 1.0};
         ext.handleExtension(function, args);
         String expected = "Invalid type: hello.";
-        assertEquals(expected, outContent.toString().trim());
+        assertEquals(expected, outContent.toString().trim(), "Link type error message is incorrect.");
     }
 
 
@@ -215,7 +217,7 @@ class OMEROExtensionErrorTest {
         Object[] args = {"hello", 1.0, "world", 1.0};
         ext.handleExtension(function, args);
         String expected = String.format("Cannot %s hello and world", function);
-        assertEquals(expected, outContent.toString().trim());
+        assertEquals(expected, outContent.toString().trim(), "Impossible linking error message is incorrect.");
     }
 
 }
