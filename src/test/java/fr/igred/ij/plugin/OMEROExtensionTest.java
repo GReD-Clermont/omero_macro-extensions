@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2021 GReD
+ *  Copyright (C) 2021-2023 GReD
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
@@ -32,18 +32,23 @@ import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.SecureRandom;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 
 @ExtendWith(TestResultLogger.class)
@@ -51,14 +56,18 @@ class OMEROExtensionTest {
 
     private static final Object[] NULL_ARRAY = {null, null, null, null};
 
+    private static final String HOSTNAME = "omero";
+    private static final double PORT     = 4064;
+    private static final String USERNAME = "testUser";
+    private static final String PASSWORD = "password";
+
     private OMEROMacroExtension ext;
 
 
     @BeforeEach
     public void setUp() {
-        final double port = 4064;
         ext = new OMEROMacroExtension();
-        Object[] args = {"omero", port, "testUser", "password"};
+        Object[] args = {HOSTNAME, PORT, USERNAME, PASSWORD};
         ext.handleExtension("connectToOMERO", args);
     }
 
@@ -83,7 +92,7 @@ class OMEROExtensionTest {
 
 
     @ParameterizedTest
-    @CsvSource(delimiter = ';', value = {"testUser;2",
+    @CsvSource(delimiter = ';', value = {USERNAME + ";2",
                                          "all;-1",
                                          "'';-1",
                                          ";-1",})
@@ -258,12 +267,12 @@ class OMEROExtensionTest {
 
 
     @ParameterizedTest
-    @CsvSource(delimiter = ';', value = {"project;1.0;./test1.txt",
-                                         "projects;1.0;./test2.txt",
-                                         "dataset;1.0;./test3.txt",
-                                         "datasets;1.0;./test4.txt",
-                                         "images;1.0;./test5.txt",
-                                         "image;1.0;./test6.txt",})
+    @CsvSource(delimiter = ';', value = {"project;1.0;test1.txt",
+                                         "projects;1.0;test2.txt",
+                                         "dataset;1.0;test3.txt",
+                                         "datasets;1.0;test4.txt",
+                                         "images;1.0;test5.txt",
+                                         "image;1.0;test6.txt",})
     void testAddAndDeleteFile(String type, double id, String filename) throws Exception {
         final int size = 2 * 262144 + 20;
 
@@ -274,7 +283,9 @@ class OMEROExtensionTest {
         byte[] array = new byte[size];
         new SecureRandom().nextBytes(array);
         String generatedString = new String(array, StandardCharsets.UTF_8);
-        try (PrintStream out = new PrintStream(new FileOutputStream(filename), false, StandardCharsets.UTF_8.name())) {
+        try (PrintStream out = new PrintStream(Files.newOutputStream(Paths.get(filename)),
+                                               false,
+                                               StandardCharsets.UTF_8.name())) {
             out.print(generatedString);
         }
 
@@ -374,13 +385,12 @@ class OMEROExtensionTest {
 
     @Test
     void testSudo() {
-        final double port = 4064;
         ext.handleExtension("disconnect", NULL_ARRAY);
 
-        Object[] args = {"omero", port, "root", "omero"};
+        Object[] args = {HOSTNAME, PORT, "root", "omero"};
         ext.handleExtension("connectToOMERO", args);
 
-        Object[] args2 = {"testUser"};
+        Object[] args2 = {USERNAME};
         ext.handleExtension("sudo", args2);
 
         Object[] args3 = {"Project tag", "tag attached to a project"};
@@ -402,43 +412,55 @@ class OMEROExtensionTest {
 
     @Test
     void testTable() throws Exception {
+        long   imageId = 1L;
+        String label1  = "test";
+        String label2  = "test2";
+        double size1   = 25.023579d;
+        double size2   = 50.0d;
+
         ResultsTable rt1 = new ResultsTable();
         rt1.incrementCounter();
-        rt1.setLabel("test", 0);
-        rt1.setValue("Size", 0, 25.0);
+        rt1.setLabel(label1, 0);
+        rt1.setValue("Size", 0, size1);
 
         ResultsTable rt2 = new ResultsTable();
         rt2.incrementCounter();
-        rt2.setLabel("test2", 0);
-        rt2.setValue("Size", 0, 50.0);
+        rt2.setLabel(label2, 0);
+        rt2.setValue("Size", 0, size2);
 
-        ext.addToTable("test_table", rt1, 1L, new ArrayList<>(0), null);
-        ext.addToTable("test_table", rt2, 1L, new ArrayList<>(0), null);
+        ext.addToTable("test_table", rt1, imageId, new ArrayList<>(0), null);
+        ext.addToTable("test_table", rt2, imageId, new ArrayList<>(0), null);
 
         Object[] args2 = {"test_table", "dataset", 1.0d};
         ext.handleExtension("saveTable", args2);
 
-        File     textFile = new File("./test.txt");
+        File     textFile = new File("test.txt");
         Object[] args3    = {"test_table", textFile.getCanonicalPath(), null};
         ext.handleExtension("saveTableAsFile", args3);
-        List<String> expected = Arrays.asList("\"Image\",\"Label\",\"Size\"",
-                                              "\"1\",\"test\",\"25.0\"",
-                                              "\"1\",\"test2\",\"50.0\"");
+
+        NumberFormat formatter = NumberFormat.getInstance();
+        formatter.setMaximumFractionDigits(4);
+        String s1 = formatter.format(size1);
+        String s2 = formatter.format(size2);
+
+        String line1 = "\"Image\"\t\"Label\"\t\"Size\"";
+        String line2 = String.format("\"%d\"\t\"%s\"\t\"%s\"", imageId, label1, s1);
+        String line3 = String.format("\"%d\"\t\"%s\"\t\"%s\"", imageId, label2, s2);
+
+        List<String> expected = Arrays.asList(line1, line2, line3);
+
         List<String> actual = Files.readAllLines(textFile.toPath());
-        assertEquals(expected.size(), actual.size());
-        for (int i = 0; i < expected.size(); i++) {
-            assertEquals(expected.get(i), actual.get(i));
-        }
+        assertEquals(expected, actual);
         Files.deleteIfExists(textFile.toPath());
 
         Client client = new Client();
-        client.connect("omero", 4064, "testUser", "password".toCharArray());
+        client.connect(HOSTNAME, (int) PORT, USERNAME, PASSWORD.toCharArray());
         List<TableWrapper> tables = client.getDataset(1L).getTables(client);
         client.disconnect();
         assertEquals(1, tables.size());
         assertEquals(2, tables.get(0).getRowCount());
-        assertEquals(25.0, tables.get(0).getData(0, 2));
-        assertEquals(50.0, tables.get(0).getData(1, 2));
+        assertEquals(size1, tables.get(0).getData(0, 2));
+        assertEquals(size2, tables.get(0).getData(1, 2));
     }
 
 }

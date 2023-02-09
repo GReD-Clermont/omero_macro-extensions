@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2021 GReD
+ *  Copyright (C) 2021-2023 GReD
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
@@ -46,8 +46,10 @@ import ij.plugin.frame.RoiManager;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.nio.file.Files;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -57,6 +59,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ExecutionException;
@@ -78,6 +81,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
 
     private static final String ERROR_POSSIBLE_VALUES = "%s: %s. Possible values are: %s";
     private static final String ERROR_RETRIEVE_IN     = "Could not retrieve %s in %s: %s";
+    public static final  char   DEFAULT_DELIMITER     = '\t';
 
     private final ExtensionDescriptor[] extensions = {
             newDescriptor("connectToOMERO", this, ARG_STRING, ARG_NUMBER, ARG_STRING, ARG_STRING),
@@ -140,8 +144,9 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
      * @return The corrected type.
      */
     private static String singularType(String type) {
-        String singular = type.toLowerCase();
+        String singular = type.toLowerCase(Locale.ROOT);
         int    length   = singular.length();
+        //noinspection MagicCharacter
         if (singular.charAt(length - 1) == 's') {
             singular = singular.substring(0, length - 1);
         }
@@ -444,17 +449,17 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     /**
      * Connects the client to OMERO.
      *
-     * @param host     The host name.
+     * @param hostname The host name.
      * @param port     The port.
      * @param username The username.
      * @param password The password.
      *
      * @return True if connected, false otherwise.
      */
-    public boolean connect(String host, int port, String username, String password) {
+    public boolean connect(String hostname, int port, String username, String password) {
         boolean connected = false;
         try {
-            client.connect(host, port, username, password.toCharArray());
+            client.connect(hostname, port, username, password.toCharArray());
             connected = true;
         } catch (ServiceException e) {
             IJ.error("Could not connect: " + e.getMessage());
@@ -466,19 +471,19 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     /**
      * Sets the user whose objects should be listed with the "list" commands.
      *
-     * @param userName The username. Null, empty and "all" removes the filter.
+     * @param username The username. Null, empty and "all" removes the filter.
      *
      * @return The user ID if set, -1 otherwise.
      */
-    public long setUser(String userName) {
+    public long setUser(String username) {
         long id = -1L;
-        if (userName != null && !userName.trim().isEmpty() && !"all".equalsIgnoreCase(userName)) {
+        if (username != null && !username.trim().isEmpty() && !"all".equalsIgnoreCase(username)) {
             if (user != null) id = user.getId();
             ExperimenterWrapper newUser = null;
             try {
-                newUser = client.getUser(userName);
+                newUser = client.getUser(username);
             } catch (ExecutionException | ServiceException | AccessException | NoSuchElementException e) {
-                IJ.log("Could not retrieve user: " + userName);
+                IJ.log("Could not retrieve user: " + username);
             }
             if (newUser != null) {
                 user = newUser;
@@ -503,7 +508,8 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
         List<File> files = new ArrayList<>(0);
         try {
             files = client.getImage(imageId).download(client, path);
-        } catch (ServiceException | AccessException | OMEROServerError | ExecutionException | NoSuchElementException e) {
+        } catch (ServiceException | AccessException | OMEROServerError | ExecutionException |
+                 NoSuchElementException e) {
             IJ.error("Could not download image: " + e.getMessage());
         }
         return files.stream().map(File::toString).collect(Collectors.joining(","));
@@ -574,11 +580,11 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     /**
      * Deletes the file with the specified ID from OMERO.
      *
-     * @param fileId The file ID.
+     * @param id The file ID.
      */
-    public void deleteFile(long fileId) {
+    public void deleteFile(long id) {
         try {
-            client.deleteFile(fileId);
+            client.deleteFile(id);
         } catch (ServiceException | AccessException | ExecutionException | OMEROServerError e) {
             IJ.error("Could not delete file: " + e.getMessage());
         } catch (InterruptedException e) {
@@ -597,7 +603,8 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
      * @param ijRois    The list of ImageJ ROIs.
      * @param property  The ROI property to group shapes.
      */
-    public void addToTable(String tableName, ResultsTable results, Long imageId, List<Roi> ijRois, String property) {
+    public void addToTable(String tableName, ResultsTable results, Long imageId, List<? extends Roi> ijRois,
+                           String property) {
         TableWrapper table = tables.get(tableName);
 
         if (results == null) {
@@ -623,15 +630,15 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
      *
      * @param tableName The table name.
      * @param path      The path to the file.
-     * @param delimiter The desired delimiter.
+     * @param delimiter The desired delimiter. If null, defaults to '\t'.
      */
     public void saveTableAsFile(String tableName, String path, CharSequence delimiter) {
         TableWrapper table = tables.get(tableName);
 
-        char sep = delimiter == null || delimiter.length() != 1 ? ',' : delimiter.charAt(0);
+        char sep = delimiter == null || delimiter.length() != 1 ? DEFAULT_DELIMITER : delimiter.charAt(0);
         try {
             table.saveAs(path, sep);
-        } catch (IOException e) {
+        } catch (FileNotFoundException | UnsupportedEncodingException e) {
             IJ.error("Could not create table file: ", e.getMessage());
         }
     }
@@ -649,7 +656,8 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
         if (object != null) {
             TableWrapper table = tables.get(tableName);
             if (table != null) {
-                String timestamp = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss").format(ZonedDateTime.now());
+                String timestamp = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss", Locale.ROOT)
+                                                    .format(ZonedDateTime.now());
                 String newName;
                 if (tableName == null || tableName.isEmpty()) newName = timestamp + "_" + table.getName();
                 else newName = timestamp + "_" + tableName;
@@ -1147,9 +1155,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
 
                 List<ROIWrapper> rois = ROIWrapper.fromImageJ(ijRois, property);
                 rois.forEach(roi -> roi.setImage(image));
-                for (ROIWrapper roi : rois) {
-                    image.saveROI(client, roi);
-                }
+                image.saveROIs(client, rois);
                 result += rois.size();
                 overlay.clear();
                 List<Roi> newRois = ROIWrapper.toImageJ(rois, property);
@@ -1165,9 +1171,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
 
                 List<ROIWrapper> rois = ROIWrapper.fromImageJ(ijRois, property);
                 rois.forEach(roi -> roi.setImage(image));
-                for (ROIWrapper roi : rois) {
-                    image.saveROI(client, roi);
-                }
+                image.saveROIs(client, rois);
                 result += rois.size();
                 rm.reset();
                 List<Roi> newRois = ROIWrapper.toImageJ(rois, property);
