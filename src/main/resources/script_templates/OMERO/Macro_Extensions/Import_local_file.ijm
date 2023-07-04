@@ -1,7 +1,7 @@
 // @String(label="Username") USERNAME
 // @String(label="Password", style='password', persist=false) PASSWORD
 // @String(label="Host", value='wss://workshop.openmicroscopy.org/omero-ws') HOST
-// @Integer(label="Port", value=4064) PORT
+// @Integer(label="Port", value=443) PORT
 
 path_to_file = File.openDialog("Choose a File");
 
