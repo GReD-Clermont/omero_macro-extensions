@@ -1,7 +1,7 @@
 // @String(label="Username") USERNAME
 // @String(label="Password", style='password', persist=false) PASSWORD
 // @String(label="Host", value='wss://workshop.openmicroscopy.org/omero-ws') HOST
-// @Integer(label="Port", value=4064) PORT
+// @Integer(label="Port", value=443) PORT
 // @Integer(label="Dataset ID", value=2331) dataset_id
 // @String(label="Target User's name", value="") target_user
 
