@@ -1200,10 +1200,8 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
         try {
             ImageWrapper     image = client.getImage(id);
             List<ROIWrapper> rois  = image.getROIs(client);
-            for (ROIWrapper roi : rois) {
-                client.delete(roi);
-                removed++;
-            }
+            client.delete(rois);
+            removed = rois.size();
         } catch (ServiceException | AccessException | ExecutionException | OMEROServerError e) {
             IJ.error("Could not remove image ROIs: " + e.getMessage());
         } catch (InterruptedException e) {
