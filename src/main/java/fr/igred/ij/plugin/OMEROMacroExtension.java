@@ -61,6 +61,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
@@ -103,7 +105,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
             newDescriptor("downloadImage", this, ARG_NUMBER, ARG_STRING),
             newDescriptor("delete", this, ARG_STRING, ARG_NUMBER),
             newDescriptor("getName", this, ARG_STRING, ARG_NUMBER),
-            newDescriptor("getImage", this, ARG_NUMBER),
+            newDescriptor("getImage", this, ARG_NUMBER, ARG_STRING + ARG_OPTIONAL),
             newDescriptor("getROIs", this, ARG_NUMBER, ARG_NUMBER + ARG_OPTIONAL, ARG_STRING + ARG_OPTIONAL),
             newDescriptor("saveROIs", this, ARG_NUMBER, ARG_STRING + ARG_OPTIONAL),
             newDescriptor("removeROIs", this, ARG_NUMBER, ARG_STRING + ARG_OPTIONAL),
@@ -1080,11 +1082,57 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
      *
      * @return The image, as an {@link ImagePlus}.
      */
-    public ImagePlus getImage(long id) {
+    public ImagePlus getImage(long id, String bounds) {
         ImagePlus imp = null;
         try {
             ImageWrapper image = client.getImage(id);
-            imp = image.toImagePlus(client);
+            if (bounds == null)
+                imp = image.toImagePlus(client);
+            else {
+                // Regex captures in any order XYCZT coordinates of the form x:: x:0: x::100 x:0:100
+                String regexPattern = "(?:(x):(\\d*):(\\d*))?(?:(y):(\\d*):(\\d*))?(?:(z):(\\d*):(\\d*))?(?:(c):(\\d*):(\\d*))?(?:(t):(\\d*):(\\d*))?";
+                Pattern pattern = Pattern.compile(regexPattern, Pattern.CASE_INSENSITIVE);
+                Matcher matcher = pattern.matcher(bounds);
+
+                int[] xBounds = {0, -1};  // -1 is out of min-max range so maximum will be taken
+                int[] yBounds = {0, -1};
+                int[] cBounds = {0, -1};
+                int[] zBounds = {0, -1};
+                int[] tBounds = {0, -1};
+
+                while (matcher.find()) {
+                    for (int i = 1; i <= matcher.groupCount(); i += 3) {
+                        String coordinateType = matcher.group(i);
+                        if(coordinateType == null)
+                            continue;
+                        int start = matcher.group(i + 1) == null || matcher.group(i + 1).isEmpty() ? 0 : Integer.parseInt(matcher.group(i + 1));
+                        int end = matcher.group(i + 2) == null || matcher.group(i + 2).isEmpty() ? -1 : Integer.parseInt(matcher.group(i + 2));
+                        switch(coordinateType) {
+                            case "x":
+                                xBounds[0] = start;
+                                xBounds[1] = end;
+                                break;
+                            case "y":
+                                yBounds[0] = start;
+                                yBounds[1] = end;
+                                break;
+                            case "c":
+                                cBounds[0] = start;
+                                cBounds[1] = end;
+                                break;
+                            case "z":
+                                zBounds[0] = start;
+                                zBounds[1] = end;
+                                break;
+                            case "t":
+                                tBounds[0] = start;
+                                tBounds[1] = end;
+                                break;
+                        }
+                    }
+                }
+                imp = image.toImagePlus(client, xBounds, yBounds, cBounds, zBounds, tBounds);
+            }
         } catch (ServiceException | AccessException | ExecutionException | NoSuchElementException e) {
             IJ.error("Could not retrieve image: " + e.getMessage());
         }
@@ -1401,7 +1449,8 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                 break;
 
             case "getImage":
-                ImagePlus imp = getImage(((Double) args[0]).longValue());
+                String bounds = (String) args[1];
+                ImagePlus imp = getImage(((Double) args[0]).longValue(), bounds);
                 if (imp != null) {
                     imp.show();
                     results = String.valueOf(imp.getID());
