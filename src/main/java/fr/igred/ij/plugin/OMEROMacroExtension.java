@@ -1092,24 +1092,32 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
             if (bounds == null)
                 imp = image.toImagePlus(client);
             else {
-                // Regex captures in any order XYCZT coordinates of the form x:: x:0: x::100 x:0:100
-                String regexPattern = "(?:(x):(\\d*):(\\d*))?(?:(y):(\\d*):(\\d*))?(?:(z):(\\d*):(\\d*))?(?:(c):(\\d*):(\\d*))?(?:(t):(\\d*):(\\d*))?";
+                // Regex captures in any order XYCZT coordinates of the form x:: x:0: x::100 x:0:100 c:0
+                String regexPattern = "(?:(x):(\\d*)(:?)(\\d*))?(?:(y):(\\d*)(:?)(\\d*))?(?:(c):(\\d*)(:?)(\\d*))?(?:(z):(\\d*)(:?)(\\d*))?(?:(t):(\\d*)(:?)(\\d*))?";
                 Pattern pattern = Pattern.compile(regexPattern, Pattern.CASE_INSENSITIVE);
                 Matcher matcher = pattern.matcher(bounds);
 
-                int[] xBounds = {0, -1};  // -1 is out of min-max range so maximum will be taken
+                int[] xBounds = {0, -1};  // Defaults to the whole dimension
                 int[] yBounds = {0, -1};
                 int[] cBounds = {0, -1};
                 int[] zBounds = {0, -1};
                 int[] tBounds = {0, -1};
-
+                int start, end;
+                boolean startEmpty, endEmpty, sepEmpty;
                 while (matcher.find()) {
-                    for (int i = 1; i <= matcher.groupCount(); i += 3) {
+                    for (int i = 1; i <= matcher.groupCount(); i += 4) {
                         String coordinateType = matcher.group(i);
-                        if(coordinateType == null)
+                        startEmpty = matcher.group(i + 1) == null || matcher.group(i + 1).isEmpty();
+                        sepEmpty = matcher.group(i + 2) == null || matcher.group(i + 2).isEmpty();
+                        endEmpty = matcher.group(i + 3) == null || matcher.group(i + 3).isEmpty();
+                        if((startEmpty && sepEmpty && endEmpty) || coordinateType == null)
                             continue;
-                        int start = matcher.group(i + 1) == null || matcher.group(i + 1).isEmpty() ? 0 : Integer.parseInt(matcher.group(i + 1));
-                        int end = matcher.group(i + 2) == null || matcher.group(i + 2).isEmpty() ? -1 : Integer.parseInt(matcher.group(i + 2));
+
+                        start = startEmpty ? 0 : Integer.parseInt(matcher.group(i + 1));
+                        if(sepEmpty)
+                            end = start; // There is no second separator, indicates a single slice
+                        else
+                            end = endEmpty ? -1 : (Integer.parseInt(matcher.group(i + 3)) - 1);
                         switch(coordinateType) {
                             case "x":
                                 xBounds[0] = start;
