@@ -316,7 +316,7 @@ class OMEROExtensionTest {
     @Test
     void testGetImage() {
         final int size = 512;
-        ImagePlus imp  = ext.getImage(1L);
+        ImagePlus imp  = ext.getImage(1L, null);
         assertEquals(size, imp.getWidth());
         assertEquals(size, imp.getHeight());
     }
@@ -324,7 +324,7 @@ class OMEROExtensionTest {
 
     @Test
     void testSaveAndGetROIs() {
-        ImagePlus imp     = ext.getImage(1L);
+        ImagePlus imp     = ext.getImage(1L, null);
         Overlay   overlay = new Overlay();
         Roi       roi     = new Roi(25, 30, 70, 50);
         roi.setImage(imp);

@@ -1076,9 +1076,12 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
 
 
     /**
-     * Opens an image.
+     * Opens an image with optional bounds.
+     * The bounds are in the form "x:min:max" with max included. Each of
+     * XYCZT is optional, min and max are also optional: "x:0:100 y::200 z:5: t::"
      *
      * @param id The image ID.
+     * @param bounds The XYCZT bounds
      *
      * @return The image, as an {@link ImagePlus}.
      */
