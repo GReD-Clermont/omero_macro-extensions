@@ -321,6 +321,22 @@ class OMEROExtensionTest {
         assertEquals(size, imp.getHeight());
     }
 
+    @Test
+    void testGetImageTwoBounds() {
+        final int partSize = 100;
+        final int fullSize = 512;
+        ImagePlus imp  = ext.getImage(1L, "x:100:200 y:0:512");
+        assertEquals(partSize, imp.getWidth());
+        assertEquals(fullSize, imp.getHeight());
+    }
+
+    @Test
+    void testGetImageOneBound() {
+        final int size = 412;
+        ImagePlus imp  = ext.getImage(1L, "x:100: y::412");
+        assertEquals(size, imp.getWidth());
+        assertEquals(size, imp.getHeight());
+    }
 
     @Test
     void testSaveAndGetROIs() {
