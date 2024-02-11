@@ -1110,12 +1110,13 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                         startEmpty = matcher.group(i + 1) == null || matcher.group(i + 1).isEmpty();
                         sepEmpty = matcher.group(i + 2) == null || matcher.group(i + 2).isEmpty();
                         endEmpty = matcher.group(i + 3) == null || matcher.group(i + 3).isEmpty();
-                        if((startEmpty && sepEmpty && endEmpty) || coordinateType == null)
+                        if((startEmpty && endEmpty) || coordinateType == null)
+                            // Invalid input or in the form z: or z::
                             continue;
 
                         start = startEmpty ? 0 : Integer.parseInt(matcher.group(i + 1));
                         if(sepEmpty)
-                            end = start; // There is no second separator, indicates a single slice
+                            end = start; // Input is like z:5  it's a single slice
                         else
                             end = endEmpty ? -1 : (Integer.parseInt(matcher.group(i + 3)) - 1);
                         switch(coordinateType) {
@@ -1460,8 +1461,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                 break;
 
             case "getImage":
-                String bounds = (String) args[1];
-                ImagePlus imp = getImage(((Double) args[0]).longValue(), bounds);
+                ImagePlus imp = getImage(((Double) args[0]).longValue(), (String) args[1]);
                 if (imp != null) {
                     imp.show();
                     results = String.valueOf(imp.getID());
