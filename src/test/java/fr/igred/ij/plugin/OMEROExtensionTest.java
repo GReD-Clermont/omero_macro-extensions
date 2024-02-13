@@ -321,6 +321,7 @@ class OMEROExtensionTest {
         assertEquals(size, imp.getHeight());
     }
 
+
     @Test
     void testGetImageTwoBounds() {
         final int partSize = 100;
@@ -330,6 +331,7 @@ class OMEROExtensionTest {
         assertEquals(fullSize, imp.getHeight());
     }
 
+
     @Test
     void testGetImageOneBound() {
         final int size = 412;
@@ -337,6 +339,67 @@ class OMEROExtensionTest {
         assertEquals(size, imp.getWidth());
         assertEquals(size, imp.getHeight());
     }
+
+
+    @Test
+    void testGetImageEmptyBounds() {
+        final int size = 512;
+        final int sizeZ = 3;
+        final int sizeC = 5;
+        final int sizeT = 7;
+        ImagePlus imp  = ext.getImage(1L, "x: ");
+        assertEquals(size, imp.getWidth());
+        assertEquals(size, imp.getHeight());
+        assertEquals(sizeZ, imp.getNSlices());
+        assertEquals(sizeC, imp.getNChannels());
+        assertEquals(sizeT, imp.getNFrames());
+    }
+
+
+    @Test
+    void testGetImageZ() {
+        final int size = 512;
+        final int sizeZ = 1;
+        final int sizeC = 5;
+        final int sizeT = 7;
+        ImagePlus imp  = ext.getImage(1L, "z:0");
+        assertEquals(size, imp.getWidth());
+        assertEquals(size, imp.getHeight());
+        assertEquals(sizeZ, imp.getNSlices());
+        assertEquals(sizeC, imp.getNChannels());
+        assertEquals(sizeT, imp.getNFrames());
+    }
+
+
+    @Test
+    void testGetImageC() {
+        final int size = 512;
+        final int sizeZ = 3;
+        final int sizeC = 1;
+        final int sizeT = 7;
+        ImagePlus imp  = ext.getImage(1L, "c:0");
+        assertEquals(size, imp.getWidth());
+        assertEquals(size, imp.getHeight());
+        assertEquals(sizeZ, imp.getNSlices());
+        assertEquals(sizeC, imp.getNChannels());
+        assertEquals(sizeT, imp.getNFrames());
+    }
+
+
+    @Test
+    void testGetImageT() {
+        final int size = 512;
+        final int sizeZ = 3;
+        final int sizeC = 5;
+        final int sizeT = 1;
+        ImagePlus imp  = ext.getImage(1L, "t:0");
+        assertEquals(size, imp.getWidth());
+        assertEquals(size, imp.getHeight());
+        assertEquals(sizeZ, imp.getNSlices());
+        assertEquals(sizeC, imp.getNChannels());
+        assertEquals(sizeT, imp.getNFrames());
+    }
+
 
     @Test
     void testSaveAndGetROIs() {
