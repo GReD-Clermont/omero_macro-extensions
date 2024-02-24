@@ -361,7 +361,7 @@ class OMEROExtensionTest {
 
 
     @ParameterizedTest
-    @ValueSource(strings = {"", "  ", "x: y:: ", "x::9999 y:0:9999 z:50:99 c::99 t::99"})
+    @ValueSource(strings = {"", "  ", "x: y:: ", "x::9999 y:0:9999 z:50:99 c::99 t::99", "^#azerty*$"})
     void testGetImageNoBounds(String bounds) {
         final int size = 512;
         final int sizeZ = 3;
