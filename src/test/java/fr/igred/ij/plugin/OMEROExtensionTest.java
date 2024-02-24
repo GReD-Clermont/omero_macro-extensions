@@ -322,32 +322,52 @@ class OMEROExtensionTest {
     }
 
 
-    @Test
-    void testGetImageTwoBounds() {
+    @ParameterizedTest
+    @ValueSource(strings = {"x:100:200 y:1:511", "x:50:150 y:2:512", "x:50:150 y:2:513"})
+    void testGetImageTwoBounds(String bounds) {
         final int partSize = 100;
-        final int fullSize = 512;
-        ImagePlus imp  = ext.getImage(1L, "x:100:200 y:0:512");
+        final int fullSize = 510;
+        ImagePlus imp  = ext.getImage(1L, bounds);
         assertEquals(partSize, imp.getWidth());
         assertEquals(fullSize, imp.getHeight());
     }
 
 
-    @Test
-    void testGetImageOneBound() {
+    @ParameterizedTest
+    @ValueSource(strings = {"x:100: y::412", "X:100: Y::412", "x::412 y:100:"})
+    void testGetImageOneBound(String bounds) {
         final int size = 412;
-        ImagePlus imp  = ext.getImage(1L, "x:100: y::412");
+        ImagePlus imp  = ext.getImage(1L, bounds);
         assertEquals(size, imp.getWidth());
         assertEquals(size, imp.getHeight());
     }
 
 
-    @Test
-    void testGetImageEmptyBounds() {
+    @ParameterizedTest
+    @ValueSource(strings = {"x:300:480 y:24:36 z:1:3 c:0:4 t:3:6", "X:300:480 Y:24:36 Z:1:3 C:0:4 T:3:6"})
+    void testGetImageAllBounds(String bounds) {
+        final int sizeX = 180;
+        final int sizeY = 12;
+        final int sizeZ = 2;
+        final int sizeC = 4;
+        final int sizeT = 3;
+        ImagePlus imp  = ext.getImage(1L, bounds);
+        assertEquals(sizeX, imp.getWidth());
+        assertEquals(sizeY, imp.getHeight());
+        assertEquals(sizeZ, imp.getNSlices());
+        assertEquals(sizeC, imp.getNChannels());
+        assertEquals(sizeT, imp.getNFrames());
+    }
+
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", "  ", "x: y:: ", "x::9999 y:0:9999 z:50:99 c::99 t::99"})
+    void testGetImageNoBounds(String bounds) {
         final int size = 512;
         final int sizeZ = 3;
         final int sizeC = 5;
         final int sizeT = 7;
-        ImagePlus imp  = ext.getImage(1L, "x: ");
+        ImagePlus imp  = ext.getImage(1L, bounds);
         assertEquals(size, imp.getWidth());
         assertEquals(size, imp.getHeight());
         assertEquals(sizeZ, imp.getNSlices());
@@ -356,13 +376,14 @@ class OMEROExtensionTest {
     }
 
 
-    @Test
-    void testGetImageZ() {
+    @ParameterizedTest
+    @ValueSource(strings = {"z:0", "z:2", "Z:0", "z:0:1"})
+    void testGetImageZ(String bounds) {
         final int size = 512;
         final int sizeZ = 1;
         final int sizeC = 5;
         final int sizeT = 7;
-        ImagePlus imp  = ext.getImage(1L, "z:0");
+        ImagePlus imp  = ext.getImage(1L, bounds);
         assertEquals(size, imp.getWidth());
         assertEquals(size, imp.getHeight());
         assertEquals(sizeZ, imp.getNSlices());
@@ -371,13 +392,14 @@ class OMEROExtensionTest {
     }
 
 
-    @Test
-    void testGetImageC() {
+    @ParameterizedTest
+    @ValueSource(strings = {"c:0", "c:2", "C:0", "c:0:1"})
+    void testGetImageC(String bounds) {
         final int size = 512;
         final int sizeZ = 3;
         final int sizeC = 1;
         final int sizeT = 7;
-        ImagePlus imp  = ext.getImage(1L, "c:0");
+        ImagePlus imp  = ext.getImage(1L, bounds);
         assertEquals(size, imp.getWidth());
         assertEquals(size, imp.getHeight());
         assertEquals(sizeZ, imp.getNSlices());
@@ -386,13 +408,14 @@ class OMEROExtensionTest {
     }
 
 
-    @Test
-    void testGetImageT() {
+    @ParameterizedTest
+    @ValueSource(strings = {"t:0", "t:2", "T:0", "t:0:1"})
+    void testGetImageT(String bounds) {
         final int size = 512;
         final int sizeZ = 3;
         final int sizeC = 5;
         final int sizeT = 1;
-        ImagePlus imp  = ext.getImage(1L, "t:0");
+        ImagePlus imp  = ext.getImage(1L, bounds);
         assertEquals(size, imp.getWidth());
         assertEquals(size, imp.getHeight());
         assertEquals(sizeZ, imp.getNSlices());
