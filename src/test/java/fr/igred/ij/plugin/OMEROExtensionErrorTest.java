@@ -218,4 +218,14 @@ class OMEROExtensionErrorTest {
         assertEquals(expected, outContent.toString().trim());
     }
 
+    @Test
+    void testKeyNotExist() {
+        final String key = "notExist";
+        final double imageId = 2;
+        Object[]     args      = {"image", imageId, key, null};
+        ext.handleExtension("getValue", args);
+        String expected = "Could not retrieve value: Key \"" + key + "\" not found";
+        assertEquals(expected, outContent.toString().trim());
+    }
+
 }
