@@ -1192,14 +1192,13 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
 
 
     /**
-     * Retrieves all the Key-Value pairs annotations of an object as a list
-     * of item in a String.
+     * Retrieves a concatenated string of all key-value pairs (keys should be unique).
      *
      * @param type      The object type.
      * @param id        The object ID.
-     * @param separator The thing used to separate the items in the string (default \t).
+     * @param separator The character(s) used to separate the items in the string (TAB by default).
      *
-     * @return The string with all the key-value pairs.
+     * @return The concatenated string of all key-value pairs for the specified repository object.
      */
     public String getKeyValuePairs(String type, long id, String separator) {
         Map<String, String> keyValuePairs = null;
@@ -1232,13 +1231,15 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
 
 
     /**
-     * Retrieves the Value associated to the given Key of a Map annotation.
+     * Retrieves the Value associated to the given Key of a Map annotation. If no
+     * defaultValue is provided, generates an error.
      *
      * @param type         The object type.
      * @param id           The object ID.
+     * @param key          The key to return the value for.
      * @param defaultValue The default value to return if the key doesn't exist.
      *
-     * @return The value corresponding to the key for that object.
+     * @return The value associated to the key for the specified repository object.
      */
     public String getValue(String type, long id, String key, String defaultValue) {
         String result = null;
