@@ -344,6 +344,27 @@ class OMEROExtensionTest {
     }
 
 
+    @ParameterizedTest
+    @CsvSource(delimiter = ';', value = {"image;1;null;testKey1\ttestValue1\ttestKey2\t20",
+                                         "image;3;' ';testKey1 testValue1 testKey2 20",
+                                         "image;2;&&;testKey1&&testValue2&&testKey2&&30",
+                                         "image;4;'';''"}, nullValues={"null"})
+    void testgetKeyValuePairs(String type, Long id, String separator, String output) {
+        String result = ext.getKeyValuePairs(type, id, separator);
+        assertEquals(output, result);
+    }
+
+    @ParameterizedTest
+    @CsvSource(delimiter = ';', value = {"image;1;testKey1;null;testValue1",
+                                         "image;3;testKey2;null;20",
+                                         "image;2;testKey2;null;30",
+                                         "image;2;notExist;default;default"}, nullValues={"null"})
+    void testgetValue(String type, Long id, String key, String defaultValue, String output) {
+        String result = ext.getValue(type, id, key, defaultValue);
+        assertEquals(output, result);
+    }
+
+
     @Test
     void testImportImage() throws IOException {
         String path = "8bit-unsigned&pixelType=uint8&sizeZ=3&sizeC=5&sizeT=7&sizeX=512&sizeY=512.fake";
