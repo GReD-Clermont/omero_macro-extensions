@@ -277,8 +277,9 @@ class OMEROExtensionTest {
         final int size = 2 * 262144 + 20;
 
         File file = new File(filename);
-        if (!file.createNewFile())
+        if (!file.createNewFile()) {
             System.err.println("\"" + file.getCanonicalPath() + "\" could not be created.");
+        }
 
         byte[] array = new byte[size];
         new SecureRandom().nextBytes(array);
@@ -293,8 +294,9 @@ class OMEROExtensionTest {
         String   result = ext.handleExtension("addFile", args);
         assertNotEquals(-1L, Long.parseLong(result));
 
-        if (!file.delete())
+        if (!file.delete()) {
             System.err.println("\"" + file.getCanonicalPath() + "\" could not be deleted.");
+        }
 
         double   fileId = Double.parseDouble(result);
         Object[] args2  = {fileId};

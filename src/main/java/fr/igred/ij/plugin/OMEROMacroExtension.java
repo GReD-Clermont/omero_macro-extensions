@@ -70,6 +70,8 @@ import static ij.macro.ExtensionDescriptor.newDescriptor;
 
 public class OMEROMacroExtension implements PlugIn, MacroExtension {
 
+    public static final char DEFAULT_DELIMITER = '\t';
+
     private static final String PROJECT = "project";
     private static final String DATASET = "dataset";
     private static final String IMAGE   = "image";
@@ -81,7 +83,6 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
 
     private static final String ERROR_POSSIBLE_VALUES = "%s: %s. Possible values are: %s";
     private static final String ERROR_RETRIEVE_IN     = "Could not retrieve %s in %s: %s";
-    public static final  char   DEFAULT_DELIMITER     = '\t';
 
     private final ExtensionDescriptor[] extensions = {
             newDescriptor("connectToOMERO", this, ARG_STRING, ARG_NUMBER, ARG_STRING, ARG_STRING),
@@ -174,8 +175,11 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
      * @return The corresponding ResultsTable.
      */
     private static ResultsTable getTable(String resultsName) {
-        if (resultsName == null) return ResultsTable.getResultsTable();
-        else return ResultsTable.getResultsTable(resultsName);
+        if (resultsName == null) {
+            return ResultsTable.getResultsTable();
+        } else {
+            return ResultsTable.getResultsTable(resultsName);
+        }
     }
 
 
@@ -188,8 +192,13 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
      * @return The filtered list.
      */
     private <T extends GenericObjectWrapper<?>> List<T> filterUser(List<T> list) {
-        if (user == null) return list;
-        else return list.stream().filter(o -> o.getOwner().getId() == user.getId()).collect(Collectors.toList());
+        if (user == null) {
+            return list;
+        } else {
+            return list.stream()
+                       .filter(o -> o.getOwner().getId() == user.getId())
+                       .collect(Collectors.toList());
+        }
     }
 
 
@@ -476,9 +485,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
      * @return The user ID if set, -1 otherwise.
      */
     public long setUser(String username) {
-        long id = -1L;
         if (username != null && !username.trim().isEmpty() && !"all".equalsIgnoreCase(username)) {
-            if (user != null) id = user.getId();
             ExperimenterWrapper newUser = null;
             try {
                 newUser = client.getUser(username);
@@ -487,12 +494,11 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
             }
             if (newUser != null) {
                 user = newUser;
-                id = user.getId();
             }
         } else {
             user = null;
         }
-        return id;
+        return user == null ? -1L : user.getId();
     }
 
 
@@ -659,8 +665,11 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                 String timestamp = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss", Locale.ROOT)
                                                     .format(ZonedDateTime.now());
                 String newName;
-                if (tableName == null || tableName.isEmpty()) newName = timestamp + "_" + table.getName();
-                else newName = timestamp + "_" + tableName;
+                if (tableName == null || tableName.isEmpty()) {
+                    newName = timestamp + "_" + table.getName();
+                } else {
+                    newName = timestamp + "_" + tableName;
+                }
                 table.setName(newName);
                 try {
                     object.addTable(client, table);
@@ -750,7 +759,9 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     public void delete(String type, long id) {
         GenericObjectWrapper<?> object = getObject(type, id);
         try {
-            if (object != null) client.delete(object);
+            if (object != null) {
+                client.delete(object);
+            }
         } catch (ServiceException | AccessException | ExecutionException | OMEROServerError e) {
             IJ.error("Could not delete " + type + ": " + e.getMessage());
         } catch (InterruptedException e) {
@@ -988,7 +999,9 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                 String obj = t1.equals(TAG) ? t2 : t1;
 
                 GenericRepositoryObjectWrapper<?> object = getRepositoryObject(obj, map.get(obj));
-                if (object != null) object.addTag(client, tagId);
+                if (object != null) {
+                    object.addTag(client, tagId);
+                }
             } else if (datasetId == null || (projectId == null && imageId == null)) {
                 IJ.error(String.format("Cannot link %s and %s", type1, type2));
             } else { // Or link dataset to image or project
@@ -1032,7 +1045,9 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                 String obj = t1.equals(TAG) ? t2 : t1;
 
                 GenericRepositoryObjectWrapper<?> object = getRepositoryObject(obj, map.get(obj));
-                if (object != null) object.unlink(client, client.getTag(tagId));
+                if (object != null) {
+                    object.unlink(client, client.getTag(tagId));
+                }
             } else if (datasetId == null || (projectId == null && imageId == null)) {
                 IJ.error(String.format("Cannot unlink %s and %s", type1, type2));
             } else { // Or unlink dataset from image or project
@@ -1125,7 +1140,9 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
             }
         } else {
             RoiManager rm = RoiManager.getInstance();
-            if (rm == null) rm = RoiManager.getRoiManager();
+            if (rm == null) {
+                rm = RoiManager.getRoiManager();
+            }
             for (Roi roi : ijRois) {
                 roi.setImage(imp);
                 rm.addRoi(roi);
@@ -1216,7 +1233,9 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
      * Disconnects from OMERO.
      */
     public void disconnect() {
-        if (switched != null) endSudo();
+        if (switched != null) {
+            endSudo();
+        }
         client.disconnect();
     }
 
