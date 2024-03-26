@@ -136,7 +136,7 @@ class OMEROExtensionErrorTest {
 
     @Test
     void testGetImageError() {
-        Object[] args = {-1.0d};
+        Object[] args = {-1.0d, null};
         ext.handleExtension("getImage", args);
         String expected = "Could not retrieve image: Image -1 doesn't exist in this context";
         assertEquals(expected, outContent.toString().trim());
