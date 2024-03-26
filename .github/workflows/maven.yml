@@ -110,7 +110,7 @@ jobs:
           VERSION=$(mvn help:evaluate -N -Dexpression=project.version|grep -v '\[')
           mvn versions:set -DnewVersion=$VERSION-SNAPSHOT
       - name: Publish to GitHub Packages Apache Maven
-        run: mvn deploy -DskipTests -s $GITHUB_WORKSPACE/settings.xml
+        run: mvn deploy -DskipTests
         env:
           GITHUB_TOKEN: ${{ github.token }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
