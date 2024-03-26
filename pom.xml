@@ -147,6 +147,9 @@
                 </configuration>
             </plugin>
             <plugin>
+                <artifactId>maven-gpg-plugin</artifactId>
+            </plugin>
+            <plugin>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <executions>
                     <execution>
@@ -159,15 +162,4 @@
             </plugin>
         </plugins>
     </build>
-
-    <reporting>
-        <plugins>
-            <plugin>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <configuration>
-                    <detectJavaApiLink>false</detectJavaApiLink>
-                </configuration>
-            </plugin>
-        </plugins>
-    </reporting>
 </project>
