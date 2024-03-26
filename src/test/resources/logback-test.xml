@@ -7,6 +7,6 @@
     <root level="warn">
         <appender-ref ref="STDOUT"/>
     </root>
-    <logger name="loci.formats" level="off" />
-    <logger name="ome.formats" level="off" />
+    <logger name="loci.formats" level="off"/>
+    <logger name="ome.formats" level="off"/>
 </configuration>
