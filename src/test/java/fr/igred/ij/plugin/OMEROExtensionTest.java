@@ -326,7 +326,7 @@ class OMEROExtensionTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"x:100:200 y:1:511", "x:50:150 y:2:512", "x:50:150 y:2:513"})
-    void testGetImageTwoBounds(String bounds) {
+    void testGetImageTwoBounds(CharSequence bounds) {
         final int partSize = 100;
         final int fullSize = 510;
         ImagePlus imp  = ext.getImage(1L, bounds);
@@ -337,7 +337,7 @@ class OMEROExtensionTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"x:100: y::412", "X:100: Y::412", "x::412 y:100:"})
-    void testGetImageOneBound(String bounds) {
+    void testGetImageOneBound(CharSequence bounds) {
         final int size = 412;
         ImagePlus imp  = ext.getImage(1L, bounds);
         assertEquals(size, imp.getWidth());
@@ -347,7 +347,7 @@ class OMEROExtensionTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"x:300:480 y:24:36 z:1:3 c:0:4 t:3:6", "X:300:480 Y:24:36 Z:1:3 C:0:4 T:3:6"})
-    void testGetImageAllBounds(String bounds) {
+    void testGetImageAllBounds(CharSequence bounds) {
         final int sizeX = 180;
         final int sizeY = 12;
         final int sizeZ = 2;
@@ -364,7 +364,7 @@ class OMEROExtensionTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"", "  ", "x: y:: ", "x::9999 y:0:9999 z:50:99 c::99 t::99", "^#azerty*$"})
-    void testGetImageNoBounds(String bounds) {
+    void testGetImageNoBounds(CharSequence bounds) {
         final int size = 512;
         final int sizeZ = 3;
         final int sizeC = 5;
@@ -380,7 +380,7 @@ class OMEROExtensionTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"z:0", "z:2", "Z:0", "z:0:1"})
-    void testGetImageZ(String bounds) {
+    void testGetImageZ(CharSequence bounds) {
         final int size = 512;
         final int sizeZ = 1;
         final int sizeC = 5;
@@ -396,7 +396,7 @@ class OMEROExtensionTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"c:0", "c:2", "C:0", "c:0:1"})
-    void testGetImageC(String bounds) {
+    void testGetImageC(CharSequence bounds) {
         final int size = 512;
         final int sizeZ = 3;
         final int sizeC = 1;
@@ -412,7 +412,7 @@ class OMEROExtensionTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"t:0", "t:2", "T:0", "t:0:1"})
-    void testGetImageT(String bounds) {
+    void testGetImageT(CharSequence bounds) {
         final int size = 512;
         final int sizeZ = 3;
         final int sizeC = 5;
