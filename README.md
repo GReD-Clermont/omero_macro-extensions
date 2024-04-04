@@ -222,7 +222,6 @@ imageName = Ext.getName("image", imageIds[0]);
 print(imageName);
 ```
 
-
 ### Creating projects, datasets and tags
 
 Projects can be created with *Ext.createProject*:
@@ -271,6 +270,14 @@ Pixel intensities can be retrieved from images:
 
 ```
 imageplusID = Ext.getImage(imageIds[0]);
+```
+
+Images can also be cropped on import by specifying the ROI as a String of the form:
+"x:xstart:xend,y:ystart:yend,c:cstart:cend,z:zstart:zend,t:tstart:tend".
+For example, cropping a 512x512x3x100x5 image starting at (0,0,0,50,3) and ending at (100,100,2,99,3) can be done with:
+
+```
+imageplusID = Ext.getImage(imageIds[0], "x:0:100,y::100,z:50:,t:3");
 ```
 
 ROIs from OMERO can also be added to the ROI manager or to the Overlay of the current image (boolean toOverlay). ROIs

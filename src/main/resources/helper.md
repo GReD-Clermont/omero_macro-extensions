@@ -52,6 +52,11 @@ Ext.getImage(id)
 > Opens the image with the given `id`.  
 > Returns the image ID in ImageJ.
 
+Ext.getImage(id, region)
+> Opens a subregion of the image with the given `id`.
+> The region is specified as a string in the format "x:start:end,y:start:end,...".
+> Returns the image ID in ImageJ.
+
 Ext.getROIs(imageId, toOverlay, property)
 > Retrieves the ROIs for the image with the given `imageId`.
 > These are added to the ROI manager by default.
