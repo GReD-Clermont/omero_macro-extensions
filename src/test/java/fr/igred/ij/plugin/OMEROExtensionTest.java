@@ -344,7 +344,7 @@ class OMEROExtensionTest {
     }
 
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "[{index}] {0},{1},{2},...")
     @CsvSource(delimiter = ';', value = {"image;1;null;testKey1\ttestValue1\ttestKey2\t20",
                                          "image;3;' ';testKey1 testValue1 testKey2 20",
                                          "image;2;&&;testKey1&&testValue2&&testKey2&&30",
