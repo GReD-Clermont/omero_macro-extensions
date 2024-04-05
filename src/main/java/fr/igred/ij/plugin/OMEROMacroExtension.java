@@ -20,7 +20,6 @@ import fr.igred.omero.Client;
 import fr.igred.omero.GenericObjectWrapper;
 import fr.igred.omero.annotations.TableWrapper;
 import fr.igred.omero.annotations.TagAnnotationWrapper;
-import fr.igred.omero.annotations.MapAnnotationWrapper;
 import fr.igred.omero.exception.AccessException;
 import fr.igred.omero.exception.OMEROServerError;
 import fr.igred.omero.exception.ServiceException;
@@ -1201,38 +1200,38 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
      * @return The concatenated string of all key-value pairs for the specified repository object.
      */
     public String getKeyValuePairs(String type, long id, String separator) {
-        Map<String, String> keyValuePairs = null;
+        Map<String, String> keyValuePairs = new TreeMap<>();
 
-        if (separator == null)
-            separator = "\t";
+        String sep = separator == null ? "\t" : separator;
 
-        GenericObjectWrapper<?> object = getObject(type, id);
-        try{
-            keyValuePairs = ((GenericRepositoryObjectWrapper<?>) object).getKeyValuePairs(client);
+        GenericRepositoryObjectWrapper<?> object = getRepositoryObject(type, id);
+        try {
+            if (object != null) {
+                keyValuePairs = new TreeMap<>(object.getKeyValuePairs(client));
+            }
         } catch (ServiceException | AccessException | ExecutionException e) {
             IJ.error("Could not retrieve object: " + e.getMessage());
         }
 
-        // Convert to a TreeMap for predictable alphabetical order
-        keyValuePairs = new TreeMap(keyValuePairs);
+        int size = 10 * keyValuePairs.size();
 
-        StringBuilder concatenatedString = new StringBuilder();
+        StringBuilder concatenation = new StringBuilder(size);
         for (Map.Entry<String, String> entry : keyValuePairs.entrySet()) {
-            concatenatedString.append(entry.getKey())
-                              .append(separator)
-                              .append(entry.getValue())
-                              .append(separator);
+            concatenation.append(entry.getKey())
+                         .append(sep)
+                         .append(entry.getValue())
+                         .append(sep);
         }
-        if (concatenatedString.length() > 0) {
-            concatenatedString.setLength(concatenatedString.length() - separator.length());
+        if (concatenation.length() > 0) {
+            concatenation.setLength(concatenation.length() - sep.length());
         }
-        return concatenatedString.toString();
+        return concatenation.toString();
     }
 
 
     /**
-     * Retrieves the Value associated to the given Key of a Map annotation. If no
-     * defaultValue is provided, generates an error.
+     * Retrieves the Value associated to the given Key of a Map annotation.
+     * <p> If no defaultValue is provided, generates an error.
      *
      * @param type         The object type.
      * @param id           The object ID.
@@ -1244,14 +1243,17 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     public String getValue(String type, long id, String key, String defaultValue) {
         String result = null;
 
-        GenericObjectWrapper<?> object = getObject(type, id);
-        try{
-            result = ((GenericRepositoryObjectWrapper<?>) object).getValue(client, key);
+        GenericRepositoryObjectWrapper<?> object = getRepositoryObject(type, id);
+        try {
+            if (object != null) {
+                result = object.getValue(client, key);
+            }
         } catch (NoSuchElementException e) {
-            if (defaultValue != null)
+            if (defaultValue != null) {
                 result = defaultValue;
-            else
+            } else {
                 IJ.error("Could not retrieve value: " + e.getMessage());
+            }
         } catch (ServiceException | AccessException | ExecutionException e) {
             IJ.error("Could not retrieve value: " + e.getMessage());
         }
