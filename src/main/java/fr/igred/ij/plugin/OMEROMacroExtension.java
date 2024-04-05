@@ -60,6 +60,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.TreeMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -113,6 +114,8 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
             newDescriptor("getROIs", this, ARG_NUMBER, ARG_NUMBER + ARG_OPTIONAL, ARG_STRING + ARG_OPTIONAL),
             newDescriptor("saveROIs", this, ARG_NUMBER, ARG_STRING + ARG_OPTIONAL),
             newDescriptor("removeROIs", this, ARG_NUMBER, ARG_STRING + ARG_OPTIONAL),
+            newDescriptor("getKeyValuePairs", this, ARG_STRING, ARG_NUMBER, ARG_STRING + ARG_OPTIONAL),
+            newDescriptor("getValue", this, ARG_STRING, ARG_NUMBER, ARG_STRING, ARG_STRING + ARG_OPTIONAL),
             newDescriptor("sudo", this, ARG_STRING),
             newDescriptor("endSudo", this),
             newDescriptor("disconnect", this),
@@ -1280,6 +1283,77 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
 
 
     /**
+     * Retrieves a concatenated string of all key-value pairs (keys should be unique).
+     *
+     * @param type      The object type.
+     * @param id        The object ID.
+     * @param separator The character(s) used to separate the items in the string (TAB by default).
+     *
+     * @return The concatenated string of all key-value pairs for the specified repository object.
+     */
+    public String getKeyValuePairs(String type, long id, String separator) {
+        Map<String, String> keyValuePairs = new TreeMap<>();
+
+        String sep = separator == null ? "\t" : separator;
+
+        GenericRepositoryObjectWrapper<?> object = getRepositoryObject(type, id);
+        try {
+            if (object != null) {
+                keyValuePairs = new TreeMap<>(object.getKeyValuePairs(client));
+            }
+        } catch (ServiceException | AccessException | ExecutionException e) {
+            IJ.error("Could not retrieve object: " + e.getMessage());
+        }
+
+        int size = 10 * keyValuePairs.size();
+
+        StringBuilder concatenation = new StringBuilder(size);
+        for (Map.Entry<String, String> entry : keyValuePairs.entrySet()) {
+            concatenation.append(entry.getKey())
+                         .append(sep)
+                         .append(entry.getValue())
+                         .append(sep);
+        }
+        if (concatenation.length() > 0) {
+            concatenation.setLength(concatenation.length() - sep.length());
+        }
+        return concatenation.toString();
+    }
+
+
+    /**
+     * Retrieves the Value associated to the given Key of a Map annotation.
+     * <p> If no defaultValue is provided, generates an error.
+     *
+     * @param type         The object type.
+     * @param id           The object ID.
+     * @param key          The key to return the value for.
+     * @param defaultValue The default value to return if the key doesn't exist.
+     *
+     * @return The value associated to the key for the specified repository object.
+     */
+    public String getValue(String type, long id, String key, String defaultValue) {
+        String result = null;
+
+        GenericRepositoryObjectWrapper<?> object = getRepositoryObject(type, id);
+        try {
+            if (object != null) {
+                result = object.getValue(client, key);
+            }
+        } catch (NoSuchElementException e) {
+            if (defaultValue != null) {
+                result = defaultValue;
+            } else {
+                IJ.error("Could not retrieve value: " + e.getMessage());
+            }
+        } catch (ServiceException | AccessException | ExecutionException e) {
+            IJ.error("Could not retrieve value: " + e.getMessage());
+        }
+        return result;
+    }
+
+
+    /**
      * Removes the ROIs from an image in OMERO.
      *
      * @param id The image ID on OMERO.
@@ -1523,6 +1597,21 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                 id = ((Double) args[0]).longValue();
                 int removed = removeROIs(id);
                 results = String.valueOf(removed);
+                break;
+
+            case "getKeyValuePairs":
+                type = (String) args[0];
+                id = ((Double) args[1]).longValue();
+                String separator = (String) args[2];
+                results = getKeyValuePairs(type, id, separator);
+                break;
+
+            case "getValue":
+                type = (String) args[0];
+                id = ((Double) args[1]).longValue();
+                String key = (String) args[2];
+                String defaultValue = (String) args[3];
+                results = getValue(type, id, key, defaultValue);
                 break;
 
             case "sudo":
