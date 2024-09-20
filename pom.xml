@@ -6,7 +6,7 @@
     <parent>
         <artifactId>pom-scijava</artifactId>
         <groupId>org.scijava</groupId>
-        <version>37.0.0</version>
+        <version>38.0.1</version>
     </parent>
 
     <groupId>fr.igred</groupId>
@@ -113,7 +113,7 @@
         <dependency>
             <groupId>fr.igred</groupId>
             <artifactId>simple-omero-client</artifactId>
-            <version>5.18.0</version>
+            <version>5.19.0</version>
         </dependency>
     </dependencies>
 
