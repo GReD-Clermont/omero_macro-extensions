@@ -434,12 +434,15 @@ class OMEROExtensionTest {
         roi.setImage(imp);
         overlay.add(roi);
         imp.setOverlay(overlay);
+
         int savedROIs = ext.saveROIs(imp, 1L, "");
         overlay.clear();
         int loadedROIs = ext.getROIs(imp, 1L, true, "");
-        ext.removeROIs(1L);
-        int clearedROIs = ext.getROIs(imp, 1L, true, "");
 
+        Object[] args = {1.0d};
+        ext.handleExtension("removeROIs", args);
+
+        int clearedROIs = ext.getROIs(imp, 1L, true, "");
 
         assertEquals(1, savedROIs);
         assertEquals(1, loadedROIs);
@@ -585,6 +588,7 @@ class OMEROExtensionTest {
         client.connect(HOSTNAME, (int) PORT, USERNAME, PASSWORD.toCharArray());
         List<TableWrapper> tables = client.getDataset(1L).getTables(client);
         client.disconnect();
+
         assertEquals(1, tables.size());
         assertEquals(2, tables.get(0).getRowCount());
         assertEquals(size1, tables.get(0).getData(0, 2));

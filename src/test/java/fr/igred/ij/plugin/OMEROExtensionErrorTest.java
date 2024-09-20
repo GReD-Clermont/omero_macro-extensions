@@ -16,6 +16,7 @@
 package fr.igred.ij.plugin;
 
 
+import ij.measure.ResultsTable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,6 +31,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.nio.file.Files;
+import java.util.ArrayList;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -225,6 +227,39 @@ class OMEROExtensionErrorTest {
         Object[]     args      = {"image", imageId, key, null};
         ext.handleExtension("getValue", args);
         String expected = "Could not retrieve value: Key \"" + key + "\" not found";
+        assertEquals(expected, outContent.toString().trim());
+    }
+
+
+    @Test
+    void testClearTable() throws Exception {
+        long   imageId = 1L;
+        String label1  = "test";
+        String label2  = "test2";
+        double size1   = 25.023579d;
+        double size2   = 50.0d;
+
+        ResultsTable rt1 = new ResultsTable();
+        rt1.incrementCounter();
+        rt1.setLabel(label1, 0);
+        rt1.setValue("Size", 0, size1);
+
+        ResultsTable rt2 = new ResultsTable();
+        rt2.incrementCounter();
+        rt2.setLabel(label2, 0);
+        rt2.setValue("Size", 0, size2);
+
+        ext.addToTable("test_table", rt1, imageId, new ArrayList<>(0), null);
+        ext.addToTable("test_table", rt2, imageId, new ArrayList<>(0), null);
+
+        Object[] args2 = {"test_table"};
+        ext.handleExtension("clearTable", args2);
+
+        File     textFile = new File("test.txt");
+        Object[] args3    = {"test_table", textFile.getCanonicalPath(), null};
+        ext.handleExtension("saveTableAsFile", args3);
+
+        String expected = "Table does not exist: test_table";
         assertEquals(expected, outContent.toString().trim());
     }
 

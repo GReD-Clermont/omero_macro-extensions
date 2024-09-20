@@ -60,7 +60,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.TreeMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -712,11 +711,15 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     public void saveTableAsFile(String tableName, String path, CharSequence delimiter) {
         TableWrapper table = tables.get(tableName);
 
-        char sep = delimiter == null || delimiter.length() != 1 ? DEFAULT_DELIMITER : delimiter.charAt(0);
-        try {
-            table.saveAs(path, sep);
-        } catch (FileNotFoundException | UnsupportedEncodingException e) {
-            IJ.error("Could not create table file: ", e.getMessage());
+        if (table != null) {
+            char sep = delimiter == null || delimiter.length() != 1 ? DEFAULT_DELIMITER : delimiter.charAt(0);
+            try {
+                table.saveAs(path, sep);
+            } catch (FileNotFoundException | UnsupportedEncodingException e) {
+                IJ.error("Could not create table file: ", e.getMessage());
+            }
+        } else {
+            IJ.error("Table does not exist: " + tableName);
         }
     }
 
