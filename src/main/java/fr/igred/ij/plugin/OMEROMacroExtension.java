@@ -1292,14 +1292,14 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
      * @return The concatenated string of all key-value pairs for the specified repository object.
      */
     public String getKeyValuePairs(String type, long id, String separator) {
-        Map<String, String> keyValuePairs = new TreeMap<>();
+        List<Map.Entry<String, String>> keyValuePairs = new ArrayList<>(0);
 
         String sep = separator == null ? "\t" : separator;
 
         GenericRepositoryObjectWrapper<?> object = getRepositoryObject(type, id);
         try {
             if (object != null) {
-                keyValuePairs = new TreeMap<>(object.getKeyValuePairs(client));
+                keyValuePairs = object.getKeyValuePairsAsList(client);
             }
         } catch (ServiceException | AccessException | ExecutionException e) {
             IJ.error("Could not retrieve object: " + e.getMessage());
@@ -1308,7 +1308,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
         int size = 10 * keyValuePairs.size();
 
         StringBuilder concatenation = new StringBuilder(size);
-        for (Map.Entry<String, String> entry : keyValuePairs.entrySet()) {
+        for (Map.Entry<String, String> entry : keyValuePairs) {
             concatenation.append(entry.getKey())
                          .append(sep)
                          .append(entry.getValue())
