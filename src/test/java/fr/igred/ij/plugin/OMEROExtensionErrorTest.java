@@ -146,6 +146,15 @@ class OMEROExtensionErrorTest {
 
 
     @Test
+    void testGetImageFromROIError() {
+        Object[] args = {1.0d, "-1"};
+        ext.handleExtension("getImage", args);
+        String expected = "Could not retrieve image: ROI not found: -1";
+        assertEquals(expected, outContent.toString().trim());
+    }
+
+
+    @Test
     void testListForUserError() {
         Object[] args = {"hello"};
         ext.handleExtension("listForUser", args);

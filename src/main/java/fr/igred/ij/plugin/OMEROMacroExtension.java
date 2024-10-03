@@ -110,6 +110,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
             newDescriptor("delete", this, ARG_STRING, ARG_NUMBER),
             newDescriptor("getName", this, ARG_STRING, ARG_NUMBER),
             newDescriptor("getImage", this, ARG_NUMBER, ARG_STRING + ARG_OPTIONAL),
+            newDescriptor("getImageFromROI", this, ARG_NUMBER, ARG_NUMBER),
             newDescriptor("getROIs", this, ARG_NUMBER, ARG_NUMBER + ARG_OPTIONAL, ARG_STRING + ARG_OPTIONAL),
             newDescriptor("saveROIs", this, ARG_NUMBER, ARG_STRING + ARG_OPTIONAL),
             newDescriptor("removeROIs", this, ARG_NUMBER, ARG_STRING + ARG_OPTIONAL),
@@ -126,6 +127,26 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     private Client switched = null;
 
     private ExperimenterWrapper user = null;
+
+
+    /**
+     * Safely converts a String to a Long, returning null if it fails.
+     *
+     * @param s The string.
+     *
+     * @return The integer value represented by s, null if not applicable.
+     */
+    private static Long safeParseLong(String s) {
+        Long l = null;
+        if (s != null) {
+            try {
+                l = Long.parseLong(s);
+            } catch (NumberFormatException ignored) {
+                // DO NOTHING
+            }
+        }
+        return l;
+    }
 
 
     /**
@@ -1166,20 +1187,30 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
      * Opens an image with optional bounds. The bounds are in the form "x:min:max" with max included. Each of XYCZT is
      * optional, min and max are also optional: "x:0:100 y::200 z:5: t::"
      *
-     * @param id     The image ID.
-     * @param bounds The XYCZT bounds
+     * @param id  The image ID.
+     * @param roi The ROI ID or XYCZT bounds
      *
      * @return The image, as an {@link ImagePlus}.
      */
-    public ImagePlus getImage(long id, CharSequence bounds) {
+    public ImagePlus getImage(long id, String roi) {
         ImagePlus imp = null;
         try {
             ImageWrapper image = client.getImage(id);
-            if (bounds == null) {
+            if (roi == null) {
                 imp = image.toImagePlus(client);
             } else {
-                Bounds b = extractBounds(bounds);
-                imp = image.toImagePlus(client, b);
+                final Long roiId = safeParseLong(roi);
+                if (roiId != null) {
+                    ROIWrapper oRoi = image.getROIs(client)
+                                           .stream()
+                                           .filter(r -> r.getId() == roiId)
+                                           .findFirst()
+                                           .orElseThrow(() -> new NoSuchElementException("ROI not found: " + roi));
+                    imp = image.toImagePlus(client, oRoi);
+                } else {
+                    Bounds b = extractBounds(roi);
+                    imp = image.toImagePlus(client, b);
+                }
             }
         } catch (ServiceException | AccessException | ExecutionException | NoSuchElementException e) {
             IJ.error("Could not retrieve image: " + e.getMessage());
@@ -1426,16 +1457,17 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
 
     @Override
     public String handleExtension(String name, Object[] args) {
-        long   id;
-        long   id1;
-        long   id2;
-        String type;
-        String type1;
-        String type2;
-        String property;
-        String tableName;
-        String path;
-        String results = null;
+        long      id;
+        long      id1;
+        long      id2;
+        String    type;
+        String    type1;
+        String    type2;
+        String    property;
+        String    tableName;
+        String    path;
+        String    results = null;
+        ImagePlus imp;
         switch (name) {
             case "connectToOMERO":
                 String host = ((String) args[0]);
@@ -1573,7 +1605,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
 
             case "getImage":
                 id = ((Double) args[0]).longValue();
-                ImagePlus imp = getImage(id, (CharSequence) args[1]);
+                imp = getImage(id, (String) args[1]);
                 if (imp != null) {
                     imp.show();
                     results = String.valueOf(imp.getID());

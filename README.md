@@ -272,8 +272,13 @@ Pixel intensities can be retrieved from images:
 imageplusID = Ext.getImage(imageIds[0]);
 ```
 
-Images can also be cropped on import by specifying the ROI as a String of the form:
-"x:xstart:xend,y:ystart:yend,c:cstart:cend,z:zstart:zend,t:tstart:tend".
+Images can also be cropped on import by specifying the ROI in one of two ways:
+1. using the ROI ID (as a String) from OMERO, for example:
+```
+imageplusID = Ext.getImage(imageIds[0], Roi.getProperty("ROI_ID"));
+```
+   
+2. as a String of the form: "x:xstart:xend,y:ystart:yend,c:cstart:cend,z:zstart:zend,t:tstart:tend". 
 For example, cropping a 512x512x3x100x5 image starting at (0,0,0,50,3) and ending at (100,100,2,99,3) can be done with:
 
 ```

@@ -213,7 +213,7 @@ class OMEROExtensionTest {
 
     @ParameterizedTest
     @NullSource
-    @ValueSource(doubles = {1.0})
+    @ValueSource(doubles = 1.0)
     void testCreateDataset(Double projectId) {
         Object[] args   = {"toDelete", "toBeDeleted", projectId};
         String   result = ext.handleExtension("createDataset", args);
@@ -326,10 +326,10 @@ class OMEROExtensionTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"x:100:200 y:1:511", "x:50:150 y:2:512", "x:50:150 y:2:513"})
-    void testGetImageTwoBounds(CharSequence bounds) {
+    void testGetImageTwoBounds(String bounds) {
         final int partSize = 100;
         final int fullSize = 510;
-        ImagePlus imp  = ext.getImage(1L, bounds);
+        ImagePlus imp      = ext.getImage(1L, bounds);
         assertEquals(partSize, imp.getWidth());
         assertEquals(fullSize, imp.getHeight());
     }
@@ -337,7 +337,7 @@ class OMEROExtensionTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"x:100: y::412", "X:100: Y::412", "x::412 y:100:"})
-    void testGetImageOneBound(CharSequence bounds) {
+    void testGetImageOneBound(String bounds) {
         final int size = 412;
         ImagePlus imp  = ext.getImage(1L, bounds);
         assertEquals(size, imp.getWidth());
@@ -347,13 +347,13 @@ class OMEROExtensionTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"x:300:480 y:24:36 z:1:3 c:0:4 t:3:6", "X:300:480 Y:24:36 Z:1:3 C:0:4 T:3:6"})
-    void testGetImageAllBounds(CharSequence bounds) {
+    void testGetImageAllBounds(String bounds) {
         final int sizeX = 180;
         final int sizeY = 12;
         final int sizeZ = 2;
         final int sizeC = 4;
         final int sizeT = 3;
-        ImagePlus imp  = ext.getImage(1L, bounds);
+        ImagePlus imp   = ext.getImage(1L, bounds);
         assertEquals(sizeX, imp.getWidth());
         assertEquals(sizeY, imp.getHeight());
         assertEquals(sizeZ, imp.getNSlices());
@@ -364,12 +364,12 @@ class OMEROExtensionTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"", "  ", "x: y:: ", "x::9999 y:0:9999 z:50:99 c::99 t::99", "^#azerty*$"})
-    void testGetImageNoBounds(CharSequence bounds) {
-        final int size = 512;
+    void testGetImageNoBounds(String bounds) {
+        final int size  = 512;
         final int sizeZ = 3;
         final int sizeC = 5;
         final int sizeT = 7;
-        ImagePlus imp  = ext.getImage(1L, bounds);
+        ImagePlus imp   = ext.getImage(1L, bounds);
         assertEquals(size, imp.getWidth());
         assertEquals(size, imp.getHeight());
         assertEquals(sizeZ, imp.getNSlices());
@@ -380,12 +380,12 @@ class OMEROExtensionTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"z:0", "z:2", "Z:0", "z:0:1"})
-    void testGetImageZ(CharSequence bounds) {
-        final int size = 512;
+    void testGetImageZ(String bounds) {
+        final int size  = 512;
         final int sizeZ = 1;
         final int sizeC = 5;
         final int sizeT = 7;
-        ImagePlus imp  = ext.getImage(1L, bounds);
+        ImagePlus imp   = ext.getImage(1L, bounds);
         assertEquals(size, imp.getWidth());
         assertEquals(size, imp.getHeight());
         assertEquals(sizeZ, imp.getNSlices());
@@ -396,12 +396,12 @@ class OMEROExtensionTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"c:0", "c:2", "C:0", "c:0:1"})
-    void testGetImageC(CharSequence bounds) {
-        final int size = 512;
+    void testGetImageC(String bounds) {
+        final int size  = 512;
         final int sizeZ = 3;
         final int sizeC = 1;
         final int sizeT = 7;
-        ImagePlus imp  = ext.getImage(1L, bounds);
+        ImagePlus imp   = ext.getImage(1L, bounds);
         assertEquals(size, imp.getWidth());
         assertEquals(size, imp.getHeight());
         assertEquals(sizeZ, imp.getNSlices());
@@ -412,17 +412,47 @@ class OMEROExtensionTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"t:0", "t:2", "T:0", "t:0:1"})
-    void testGetImageT(CharSequence bounds) {
-        final int size = 512;
+    void testGetImageT(String bounds) {
+        final int size  = 512;
         final int sizeZ = 3;
         final int sizeC = 5;
         final int sizeT = 1;
-        ImagePlus imp  = ext.getImage(1L, bounds);
+        ImagePlus imp   = ext.getImage(1L, bounds);
         assertEquals(size, imp.getWidth());
         assertEquals(size, imp.getHeight());
         assertEquals(sizeZ, imp.getNSlices());
         assertEquals(sizeC, imp.getNChannels());
         assertEquals(sizeT, imp.getNFrames());
+    }
+
+
+    @Test
+    void testGetImageFromROI() {
+        ImagePlus imp     = ext.getImage(1L, null);
+        Overlay   overlay = new Overlay();
+        Roi       roi     = new Roi(25, 30, 70, 50);
+        roi.setImage(imp);
+        overlay.add(roi);
+        imp.setOverlay(overlay);
+        int savedROIs = ext.saveROIs(imp, 1L, "");
+        overlay.clear();
+        imp.setOverlay(null);
+        int loadedROIs = ext.getROIs(imp, 1L, true, "");
+
+        Roi       retrievedRoi = imp.getOverlay().get(0);
+        String    roiId        = retrievedRoi.getProperty("ROI_ID");
+        ImagePlus cropped      = ext.getImage(1L, roiId);
+
+        ext.removeROIs(1L);
+        int clearedROIs = ext.getROIs(imp, 1L, true, "");
+
+        assertEquals(1, savedROIs);
+        assertEquals(1, loadedROIs);
+        assertEquals(0, clearedROIs);
+        assertEquals(25, Integer.parseInt(cropped.getProp("IMAGE_POS_X")));
+        assertEquals(30, Integer.parseInt(cropped.getProp("IMAGE_POS_Y")));
+        assertEquals(70, cropped.getWidth());
+        assertEquals(50, cropped.getHeight());
     }
 
 
@@ -455,7 +485,7 @@ class OMEROExtensionTest {
     @CsvSource(delimiter = ';', value = {"image;1;null;testKey1\ttestValue1\ttestKey2\t20",
                                          "image;3;' ';testKey1 testValue1 testKey2 20",
                                          "image;2;&&;testKey1&&testValue2&&testKey2&&30",
-                                         "image;4;'';''"}, nullValues = {"null"})
+                                         "image;4;'';''"}, nullValues = "null")
     void testGetKeyValuePairs(String type, Double id, String separator, String output) {
         Object[] args   = {type, id, separator};
         String   result = ext.handleExtension("getKeyValuePairs", args);
@@ -467,7 +497,7 @@ class OMEROExtensionTest {
     @CsvSource(delimiter = ';', value = {"image;1;testKey1;null;testValue1",
                                          "image;3;testKey2;null;20",
                                          "image;2;testKey2;null;30",
-                                         "image;2;notExist;default;default"}, nullValues = {"null"})
+                                         "image;2;notExist;default;default"}, nullValues = "null")
     void testGetValue(String type, Double id, String key, String defaultValue, String output) {
         Object[] args   = {type, id, key, defaultValue};
         String   result = ext.handleExtension("getValue", args);
