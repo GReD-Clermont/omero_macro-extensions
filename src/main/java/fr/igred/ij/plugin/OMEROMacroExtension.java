@@ -1457,17 +1457,16 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
 
     @Override
     public String handleExtension(String name, Object[] args) {
-        long      id;
-        long      id1;
-        long      id2;
-        String    type;
-        String    type1;
-        String    type2;
-        String    property;
-        String    tableName;
-        String    path;
-        String    results = null;
-        ImagePlus imp;
+        long   id;
+        long   id1;
+        long   id2;
+        String type;
+        String type1;
+        String type2;
+        String property;
+        String tableName;
+        String path;
+        String results = null;
         switch (name) {
             case "connectToOMERO":
                 String host = ((String) args[0]);
@@ -1605,7 +1604,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
 
             case "getImage":
                 id = ((Double) args[0]).longValue();
-                imp = getImage(id, (String) args[1]);
+                ImagePlus imp = getImage(id, (String) args[1]);
                 if (imp != null) {
                     imp.show();
                     results = String.valueOf(imp.getID());
