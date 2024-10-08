@@ -32,7 +32,6 @@ import fr.igred.omero.repository.PixelsWrapper.Coordinates;
 import fr.igred.omero.repository.PlateWrapper;
 import fr.igred.omero.repository.ProjectWrapper;
 import fr.igred.omero.repository.ScreenWrapper;
-import fr.igred.omero.repository.WellSampleWrapper;
 import fr.igred.omero.repository.WellWrapper;
 import fr.igred.omero.roi.ROIWrapper;
 import ij.IJ;
@@ -58,7 +57,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -305,7 +303,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
         String singularType = singularType(type);
 
         GenericObjectWrapper<?> object = null;
-        if (singularType.equals(TAG)) {
+        if (TAG.equals(singularType)) {
             try {
                 object = client.getTag(id);
             } catch (OMEROServerError | ServiceException e) {
@@ -475,31 +473,17 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
         String singularType = singularType(type);
 
         List<? extends GenericObjectWrapper<?>> objects = new ArrayList<>(0);
-        ScreenWrapper                           screen  = client.getScreen(id);
-        List<PlateWrapper>                      plates  = screen.getPlates();
+
+        ScreenWrapper screen = client.getScreen(id);
         switch (singularType) {
             case PLATE:
-                objects = plates;
+                objects = screen.getPlates();
                 break;
             case WELL:
-                List<WellWrapper> wells = new ArrayList<>();
-                for (PlateWrapper plate : plates) {
-                    wells.addAll(plate.getWells(client));
-                }
-                wells.sort(Comparator.comparing(GenericObjectWrapper::getId));
-                objects = wells;
+                objects = screen.getWells(client);
                 break;
             case IMAGE:
-                List<ImageWrapper> images = new ArrayList<>();
-                for (PlateWrapper plate : plates) {
-                    for (WellWrapper well : plate.getWells(client)) {
-                        images.addAll(well.getWellSamples().stream()
-                                          .map(WellSampleWrapper::getImage)
-                                          .collect(Collectors.toList()));
-                    }
-                }
-                images.sort(Comparator.comparing(GenericObjectWrapper::getId));
-                objects = images;
+                objects = screen.getImages(client);
                 break;
             case TAG:
                 objects = screen.getTags(client);
@@ -524,23 +508,74 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
         String singularType = singularType(type);
 
         List<? extends GenericObjectWrapper<?>> objects = new ArrayList<>(0);
-        PlateWrapper                            plate   = client.getPlate(id);
+
+        PlateWrapper plate = client.getPlate(id);
         switch (singularType) {
             case WELL:
                 objects = plate.getWells(client);
                 break;
             case IMAGE:
-                objects = plate.getWells(client)
-                               .stream()
-                               .flatMap(w -> w.getWellSamples().stream())
-                               .map(WellSampleWrapper::getImage)
-                               .collect(Collectors.toList());
+                objects = plate.getImages(client);
                 break;
             case TAG:
                 objects = plate.getTags(client);
                 break;
             default:
                 IJ.error(String.format(ERROR_POSSIBLE_VALUES, INVALID, type, "wells, images or tags."));
+        }
+        return objects;
+    }
+
+
+    /**
+     * Lists the objects of the specified type inside a well.
+     *
+     * @param type The object type.
+     * @param id   The well id.
+     *
+     * @return A list of GenericObjectWrappers.
+     */
+    private List<? extends GenericObjectWrapper<?>> listForWell(String type, long id)
+    throws AccessException, ServiceException, ExecutionException {
+        String singularType = singularType(type);
+
+        List<? extends GenericObjectWrapper<?>> objects = new ArrayList<>(0);
+
+        WellWrapper well = client.getWell(id);
+        switch (singularType) {
+            case IMAGE:
+                objects = well.getImages();
+                break;
+            case TAG:
+                objects = well.getTags(client);
+                break;
+            default:
+                IJ.error(String.format(ERROR_POSSIBLE_VALUES, INVALID, type, "images or tags."));
+                break;
+        }
+        return objects;
+    }
+
+
+    /**
+     * Lists the objects of the specified type linked to an image.
+     *
+     * @param type The object type.
+     * @param id   The image id.
+     *
+     * @return A list of GenericObjectWrappers.
+     */
+    private List<? extends GenericObjectWrapper<?>> listForImage(String type, long id)
+    throws AccessException, ServiceException, ExecutionException {
+        String singularType = singularType(type);
+
+        List<? extends GenericObjectWrapper<?>> objects = new ArrayList<>(0);
+
+        ImageWrapper image = client.getImage(id);
+        if (TAG.equals(singularType)) {
+            objects = image.getTags(client);
+        } else {
+            IJ.error(String.format(ERROR_POSSIBLE_VALUES, INVALID, type, "tags."));
         }
         return objects;
     }
@@ -605,8 +640,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
         List<File> files = new ArrayList<>(0);
         try {
             files = client.getImage(imageId).download(client, path);
-        } catch (ServiceException | AccessException | OMEROServerError | ExecutionException |
-                 NoSuchElementException e) {
+        } catch (ServiceException | AccessException | OMEROServerError | ExecutionException | NoSuchElementException e) {
             IJ.error("Could not download image: " + e.getMessage());
         }
         return files.stream().map(File::toString).collect(Collectors.joining(","));
@@ -987,7 +1021,6 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
      */
     public String list(String type, String parent, long id) {
         String singularParent = singularType(parent);
-        String singularType   = singularType(type);
 
         Collection<? extends GenericObjectWrapper<?>> objects = new ArrayList<>(0);
         try {
@@ -1008,23 +1041,10 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                     objects = listForPlate(type, id);
                     break;
                 case WELL:
-                    WellWrapper well = client.getWell(id);
-                    if (IMAGE.equals(singularType)) {
-                        objects = well.getWellSamples().stream()
-                                      .map(WellSampleWrapper::getImage)
-                                      .collect(Collectors.toList());
-                    } else if (TAG.equals(singularType)) {
-                        objects = well.getTags(client);
-                    } else {
-                        IJ.error(String.format(ERROR_POSSIBLE_VALUES, INVALID, type, "images or tags."));
-                    }
+                    objects = listForWell(type, id);
                     break;
                 case IMAGE:
-                    if (TAG.equals(singularType)) {
-                        objects = client.getImage(id).getTags(client);
-                    } else {
-                        IJ.error("Invalid type: " + type + ". Only possible value is: tags.");
-                    }
+                    objects = listForImage(type, id);
                     break;
                 default:
                     String msg = String.format(ERROR_POSSIBLE_VALUES, INVALID, parent,
@@ -1090,8 +1110,8 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
 
         try {
             // Link tag to repository object
-            if (t1.equals(TAG) ^ t2.equals(TAG)) {
-                String obj = t1.equals(TAG) ? t2 : t1;
+            if (TAG.equals(t1) ^ TAG.equals(t2)) {
+                String obj = TAG.equals(t1) ? t2 : t1;
 
                 GenericRepositoryObjectWrapper<?> object = getRepositoryObject(obj, map.get(obj));
                 if (object != null) {
@@ -1136,8 +1156,8 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
 
         try {
             // Unlink tag from repository object
-            if (t1.equals(TAG) ^ t2.equals(TAG)) {
-                String obj = t1.equals(TAG) ? t2 : t1;
+            if (TAG.equals(t1) ^ TAG.equals(t2)) {
+                String obj = TAG.equals(t1) ? t2 : t1;
 
                 GenericRepositoryObjectWrapper<?> object = getRepositoryObject(obj, map.get(obj));
                 if (object != null) {
