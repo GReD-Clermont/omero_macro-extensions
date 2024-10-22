@@ -117,7 +117,9 @@ class OMEROExtensionTest {
                                          "list;plates;1,2,3",
                                          "list;wells;1,2,3,4,5",
                                          "list;tags;1,2,3",
-                                         "list;tag;1,2,3",})
+                                         "list;tag;1,2,3",
+                                         "list;kv-pairs;4,5,6",
+                                         "list;kv-pair;4,5,6",})
     void testListAll(String extension, String type, String output) {
         Object[] args   = {type, null, null};
         String   result = ext.handleExtension(extension, args);
@@ -135,7 +137,9 @@ class OMEROExtensionTest {
                                          "list;screen;TestScreen;1",
                                          "list;plate;Plate Name 0;1,2",
                                          "list;tags;tag2;2",
-                                         "list;tag;tag2;2",})
+                                         "list;tag;tag2;2",
+                                         "list;kv-pairs;testKey1;4,5",
+                                         "list;kv-pair;testKey1;4,5",})
     void testListByName(String extension, String type, String name, String output) {
         Object[] args   = {type, name, null};
         String   result = ext.handleExtension(extension, args);
@@ -161,9 +165,16 @@ class OMEROExtensionTest {
                                          "list;screens;tag;1.0;1",
                                          "list;plates;tag;1.0;1",
                                          "list;wells;tag;1.0;1",
+                                         "list;tags;project;2.0;1",
+                                         "list;tags;dataset;3.0;1",
                                          "list;tags;screen;1.0;1",
                                          "list;tags;plate;1.0;1",
                                          "list;tags;well;1.0;1",
+                                         "list;kv-pairs;project;2.0;6",
+                                         "list;kv-pairs;dataset;3.0;6",
+                                         "list;kv-pairs;screen;1.0;6",
+                                         "list;kv-pairs;plate;1.0;6",
+                                         "list;kv-pairs;well;1.0;6",
                                          "list;plates;screen;2.0;2,3",
                                          "list;wells;screen;2.0;2,3,4,5",
                                          "list;images;screen;1.0;5,6",
@@ -174,7 +185,8 @@ class OMEROExtensionTest {
         Object[] args   = {type, parent, id};
         String   result = ext.handleExtension(extension, args);
 
-        String sortedIds = Arrays.stream(result.split(",")).map(Long::parseLong).sorted()
+        String sortedIds = Arrays.stream(result.split(","))
+                                 .map(Long::parseLong).sorted()
                                  .map(String::valueOf)
                                  .collect(Collectors.joining(","));
 
@@ -192,7 +204,8 @@ class OMEROExtensionTest {
                                          "getName;screen;1.0;TestScreen",
                                          "getName;plate;2.0;Plate Name 0",
                                          "getName;well;1.0;Well A-1",
-                                         "getName;tag;1.0;tag1",})
+                                         "getName;tag;1.0;tag1",
+                                         "getName;kv-pair;6.0;key\tvalue",})
     void testGetName(String extension, String type, double id, String output) {
         Object[] args   = {type, id};
         String   result = ext.handleExtension(extension, args);
@@ -239,11 +252,16 @@ class OMEROExtensionTest {
 
 
     @ParameterizedTest
-    @CsvSource(delimiter = ';', value = {"tag;1.0;project;2.0",
+    @CsvSource(delimiter = ';', value = {"project;2.0;tag;1.0",
                                          "tag;1.0;dataset;3.0",
                                          "tag;1.0;screen;1.0",
                                          "tag;1.0;plate;1.0",
                                          "tag;1.0;well;1.0",
+                                         "project;2.0;kv-pair;6.0",
+                                         "kv-pair;6.0;dataset;3.0",
+                                         "kv-pair;6.0;screen;1.0",
+                                         "kv-pair;6.0;plate;1.0",
+                                         "kv-pair;6.0;well;1.0",
                                          "dataset;3.0;project;2.0",
                                          "image;1.0;dataset;1.0",})
     void testUnlinkThenLink(String type1, double id1, String type2, double id2) {

@@ -199,6 +199,7 @@ class OMEROExtensionErrorTest {
                                          "hello;plate;2",
                                          "hello;well;2",
                                          "hello;tag;2",
+                                         "hello;kv-pair;2",
                                          "hello;TestDatasetImport;",
                                          "hello;;",})
     void testListInvalidType(String type1, String type2, Double id) {

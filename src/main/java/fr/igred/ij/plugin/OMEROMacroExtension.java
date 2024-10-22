@@ -18,6 +18,8 @@ package fr.igred.ij.plugin;
 
 import fr.igred.omero.Client;
 import fr.igred.omero.GenericObjectWrapper;
+import fr.igred.omero.annotations.GenericAnnotationWrapper;
+import fr.igred.omero.annotations.MapAnnotationWrapper;
 import fr.igred.omero.annotations.TableWrapper;
 import fr.igred.omero.annotations.TagAnnotationWrapper;
 import fr.igred.omero.exception.AccessException;
@@ -82,6 +84,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     private static final String PLATE   = "plate";
     private static final String WELL    = "well";
     private static final String TAG     = "tag";
+    private static final String MAP     = "kv-pair";
     private static final String INVALID = "Invalid type";
 
     private static final String ERROR_POSSIBLE_VALUES = "%s: %s. Possible values are: %s";
@@ -309,6 +312,12 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
             } catch (OMEROServerError | ServiceException e) {
                 IJ.error("Could not retrieve tag: " + e.getMessage());
             }
+        } else if (MAP.equals(singularType)) {
+            try {
+                object = client.getMapAnnotation(id);
+            } catch (ServiceException | ExecutionException | AccessException e) {
+                IJ.error("Could not retrieve tag: " + e.getMessage());
+            }
         } else {
             object = getRepositoryObject(type, id);
         }
@@ -361,35 +370,35 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     /**
      * Lists the objects of the specified type linked to a tag.
      *
-     * @param type The object type.
-     * @param id   The tag id.
+     * @param type       The object type.
+     * @param annotation The annotation.
      *
      * @return A list of GenericObjectWrappers.
      */
-    private List<? extends GenericObjectWrapper<?>> listForTag(String type, long id)
+    private List<? extends GenericObjectWrapper<?>> listForAnnotation(String type,
+                                                                      GenericAnnotationWrapper<?> annotation)
     throws ServiceException, OMEROServerError, AccessException, ExecutionException {
         String singularType = singularType(type);
 
         List<? extends GenericObjectWrapper<?>> objects = new ArrayList<>(0);
-        TagAnnotationWrapper                    tag     = client.getTag(id);
         switch (singularType) {
             case PROJECT:
-                objects = tag.getProjects(client);
+                objects = annotation.getProjects(client);
                 break;
             case DATASET:
-                objects = tag.getDatasets(client);
+                objects = annotation.getDatasets(client);
                 break;
             case IMAGE:
-                objects = tag.getImages(client);
+                objects = annotation.getImages(client);
                 break;
             case SCREEN:
-                objects = tag.getScreens(client);
+                objects = annotation.getScreens(client);
                 break;
             case PLATE:
-                objects = tag.getPlates(client);
+                objects = annotation.getPlates(client);
                 break;
             case WELL:
-                objects = tag.getWells(client);
+                objects = annotation.getWells(client);
                 break;
             default:
                 String msg = String.format(ERROR_POSSIBLE_VALUES,
@@ -425,8 +434,11 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
             case TAG:
                 objects = project.getTags(client);
                 break;
+            case MAP:
+                objects = project.getMapAnnotations(client);
+                break;
             default:
-                IJ.error(String.format(ERROR_POSSIBLE_VALUES, INVALID, type, "datasets, images or tags."));
+                IJ.error(String.format(ERROR_POSSIBLE_VALUES, INVALID, type, "datasets, images, tags or kv-pairs."));
         }
         return objects;
     }
@@ -453,8 +465,11 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
             case TAG:
                 objects = dataset.getTags(client);
                 break;
+            case MAP:
+                objects = dataset.getMapAnnotations(client);
+                break;
             default:
-                IJ.error(String.format(ERROR_POSSIBLE_VALUES, INVALID, type, "images or tags."));
+                IJ.error(String.format(ERROR_POSSIBLE_VALUES, INVALID, type, "images, tags or kv-pairs."));
         }
         return objects;
     }
@@ -488,8 +503,11 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
             case TAG:
                 objects = screen.getTags(client);
                 break;
+            case MAP:
+                objects = screen.getMapAnnotations(client);
+                break;
             default:
-                IJ.error(String.format(ERROR_POSSIBLE_VALUES, INVALID, type, "plates, wells, images or tags."));
+                IJ.error(String.format(ERROR_POSSIBLE_VALUES, INVALID, type, "plates, wells, images, tags or kv-pairs."));
         }
         return objects;
     }
@@ -520,8 +538,11 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
             case TAG:
                 objects = plate.getTags(client);
                 break;
+            case MAP:
+                objects = plate.getMapAnnotations(client);
+                break;
             default:
-                IJ.error(String.format(ERROR_POSSIBLE_VALUES, INVALID, type, "wells, images or tags."));
+                IJ.error(String.format(ERROR_POSSIBLE_VALUES, INVALID, type, "wells, images, tags or kv-pairs."));
         }
         return objects;
     }
@@ -549,8 +570,11 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
             case TAG:
                 objects = well.getTags(client);
                 break;
+            case MAP:
+                objects = well.getMapAnnotations(client);
+                break;
             default:
-                IJ.error(String.format(ERROR_POSSIBLE_VALUES, INVALID, type, "images or tags."));
+                IJ.error(String.format(ERROR_POSSIBLE_VALUES, INVALID, type, "images, tags or kv-pairs."));
                 break;
         }
         return objects;
@@ -941,6 +965,10 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                     List<TagAnnotationWrapper> tags = client.getTags();
                     results = listToIDs(filterUser(tags));
                     break;
+                case MAP:
+                    List<MapAnnotationWrapper> maps = client.getMapAnnotations();
+                    results = listToIDs(filterUser(maps));
+                    break;
                 default:
                     String msg = String.format(ERROR_POSSIBLE_VALUES, INVALID, type,
                                                "projects, datasets, images, screens, plates, wells or tags.");
@@ -998,6 +1026,10 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                     List<TagAnnotationWrapper> tags = client.getTags(name);
                     results = listToIDs(filterUser(tags));
                     break;
+                case MAP:
+                    List<MapAnnotationWrapper> maps = client.getMapAnnotations(name);
+                    results = listToIDs(filterUser(maps));
+                    break;
                 default:
                     String msg = String.format(ERROR_POSSIBLE_VALUES, INVALID, type,
                                                "projects, datasets, images, screens, plates, wells or tags.");
@@ -1031,8 +1063,13 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                 case DATASET:
                     objects = listForDataset(type, id);
                     break;
+                case MAP:
+                    MapAnnotationWrapper map = client.getMapAnnotation(id);
+                    objects = listForAnnotation(type, map);
+                    break;
                 case TAG:
-                    objects = listForTag(type, id);
+                    TagAnnotationWrapper tag = client.getTag(id);
+                    objects = listForAnnotation(type, tag);
                     break;
                 case SCREEN:
                     objects = listForScreen(type, id);
@@ -1107,15 +1144,27 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
         Long datasetId = map.get(DATASET);
         Long imageId   = map.get(IMAGE);
         Long tagId     = map.get(TAG);
+        Long mapId     = map.get(MAP);
+
+        if (tagId != null && mapId != null) {
+            IJ.error(String.format("Cannot link %s and %s", type1, type2));
+        }
 
         try {
-            // Link tag to repository object
+            // Link annotation to repository object
             if (TAG.equals(t1) ^ TAG.equals(t2)) {
                 String obj = TAG.equals(t1) ? t2 : t1;
 
                 GenericRepositoryObjectWrapper<?> object = getRepositoryObject(obj, map.get(obj));
                 if (object != null) {
                     object.addTag(client, tagId);
+                }
+            } else if (MAP.equals(t1) ^ MAP.equals(t2)) {
+                String obj = MAP.equals(t1) ? t2 : t1;
+
+                GenericRepositoryObjectWrapper<?> object = getRepositoryObject(obj, map.get(obj));
+                if (object != null) {
+                    object.link(client, client.getMapAnnotation(mapId));
                 }
             } else if (datasetId == null || (projectId == null && imageId == null)) {
                 IJ.error(String.format("Cannot link %s and %s", type1, type2));
@@ -1153,25 +1202,38 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
         Long datasetId = map.get(DATASET);
         Long imageId   = map.get(IMAGE);
         Long tagId     = map.get(TAG);
+        Long mapId     = map.get(MAP);
+
+        boolean linkAnnotations = tagId != null && mapId != null;
+        boolean tagObject = TAG.equals(t1) ^ TAG.equals(t2) && !linkAnnotations;
+        boolean mapObject = MAP.equals(t1) ^ MAP.equals(t2) && !linkAnnotations;
+        boolean linkDataset = datasetId != null && (projectId != null || imageId != null);
 
         try {
-            // Unlink tag from repository object
-            if (TAG.equals(t1) ^ TAG.equals(t2)) {
+            // Unlink annotation from repository object
+            if (tagObject) {
                 String obj = TAG.equals(t1) ? t2 : t1;
 
                 GenericRepositoryObjectWrapper<?> object = getRepositoryObject(obj, map.get(obj));
                 if (object != null) {
                     object.unlink(client, client.getTag(tagId));
                 }
-            } else if (datasetId == null || (projectId == null && imageId == null)) {
-                IJ.error(String.format("Cannot unlink %s and %s", type1, type2));
-            } else { // Or unlink dataset from image or project
+            } else if (mapObject) {
+                String obj = MAP.equals(t1) ? t2 : t1;
+
+                GenericRepositoryObjectWrapper<?> object = getRepositoryObject(obj, map.get(obj));
+                if (object != null) {
+                    object.unlink(client, client.getMapAnnotation(mapId));
+                }
+            } else if (linkDataset) { // Or unlink dataset from image or project
                 DatasetWrapper dataset = client.getDataset(datasetId);
                 if (projectId != null) {
                     client.getProject(projectId).removeDataset(client, dataset);
                 } else {
                     dataset.removeImage(client, client.getImage(imageId));
                 }
+            } else {
+                IJ.error(String.format("Cannot unlink %s and %s", type1, type2));
             }
         } catch (ServiceException | AccessException | ExecutionException | OMEROServerError e) {
             IJ.error(String.format("Cannot unlink %s and %s: %s", type1, type2, e.getMessage()));
@@ -1198,6 +1260,12 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
             name = ((GenericRepositoryObjectWrapper<?>) object).getName();
         } else if (object instanceof TagAnnotationWrapper) {
             name = ((TagAnnotationWrapper) object).getName();
+        } else if (object instanceof MapAnnotationWrapper) {
+            MapAnnotationWrapper map = (MapAnnotationWrapper) object;
+            name = map.getContentAsEntryList()
+                      .stream()
+                      .map(e -> e.getKey() + "\t" + e.getValue())
+                      .collect(Collectors.joining(String.format("%n")));
         }
         return name;
     }
