@@ -305,23 +305,43 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     private GenericObjectWrapper<?> getObject(String type, long id) {
         String singularType = singularType(type);
 
-        GenericObjectWrapper<?> object = null;
-        if (TAG.equals(singularType)) {
-            try {
-                object = client.getTag(id);
-            } catch (OMEROServerError | ServiceException e) {
-                IJ.error("Could not retrieve tag: " + e.getMessage());
-            }
-        } else if (MAP.equals(singularType)) {
-            try {
-                object = client.getMapAnnotation(id);
-            } catch (ServiceException | ExecutionException | AccessException e) {
-                IJ.error("Could not retrieve tag: " + e.getMessage());
-            }
+        GenericObjectWrapper<?> object;
+        if (TAG.equals(singularType) || MAP.equals(singularType)) {
+            object = getAnnotation(singularType, id);
         } else {
             object = getRepositoryObject(type, id);
         }
         return object;
+    }
+
+
+    /**
+     * Retrieves the annotation of the specified type with the specified ID.
+     *
+     * @param type The type of annotation.
+     * @param id   The object ID.
+     *
+     * @return The object.
+     */
+    private GenericAnnotationWrapper<?> getAnnotation(String type, long id) {
+        String singularType = singularType(type);
+
+        GenericAnnotationWrapper<?> annotation = null;
+        try {
+            switch (singularType) {
+                case TAG:
+                    annotation = client.getTag(id);
+                    break;
+                case MAP:
+                    annotation = client.getMapAnnotation(id);
+                    break;
+                default:
+                    IJ.error(INVALID + ": " + type + ".");
+            }
+        } catch (OMEROServerError | ServiceException | ExecutionException | AccessException e) {
+            IJ.error(String.format("Could not retrieve %s: %s", singularType, e.getMessage()));
+        }
+        return annotation;
     }
 
 
@@ -361,7 +381,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                     IJ.error(INVALID + ": " + type + ".");
             }
         } catch (ServiceException | AccessException | ExecutionException e) {
-            IJ.error("Could not retrieve object: " + e.getMessage());
+            IJ.error(String.format("Could not retrieve %s: %s", singularType, e.getMessage()));
         }
         return object;
     }
