@@ -276,6 +276,52 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
 
 
     /**
+     * Determines if the link between the referenced objects and annotations is invalid.
+     *
+     * @param objects     The objects map (associating types and ids).
+     * @param annotations The annotations map (associating types and ids).
+     *
+     * @return True if the link is invalid, false otherwise.
+     */
+    private boolean isInvalidLink(Map<String, Long> objects,
+                                  Map<String, Long> annotations) {
+        Long projectId = objects.get(PROJECT);
+        Long imageId   = objects.get(IMAGE);
+        Long screenId  = objects.get(SCREEN);
+        Long plateId   = objects.get(PLATE);
+        Long wellId    = objects.get(WELL);
+
+        Map<String, Long> tree = new HashMap<>(2);
+        tree.computeIfAbsent(PROJECT, objects::get);
+        tree.computeIfAbsent(DATASET, objects::get);
+
+        Map<String, Long> hcs = new HashMap<>(3);
+        hcs.computeIfAbsent(SCREEN, objects::get);
+        hcs.computeIfAbsent(PLATE, objects::get);
+        hcs.computeIfAbsent(WELL, objects::get);
+
+        int nObjects     = objects.values().size();
+        int nAnnotations = annotations.values().size();
+        int nTree        = tree.values().size();
+        int nHCS         = hcs.values().size();
+
+        boolean linkNotTwo      = nObjects + nAnnotations != 2;
+        boolean linkAnnotations = nAnnotations == 2;
+        boolean linkTreeHCS     = nTree == 1 && nHCS == 1;
+
+        boolean linkScreenWell = screenId != null && wellId != null;
+        boolean linkImageBad = imageId != null &&
+                               (projectId != null || screenId != null || plateId != null);
+
+        return linkNotTwo ||
+               linkAnnotations ||
+               linkImageBad ||
+               linkScreenWell ||
+               linkTreeHCS;
+    }
+
+
+    /**
      * Filters the objects list to only keep objects from the set user.
      *
      * @param list The objects list.
@@ -1160,35 +1206,34 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
         map.put(t1, id1);
         map.put(t2, id2);
 
-        Long projectId = map.get(PROJECT);
-        Long datasetId = map.get(DATASET);
-        Long imageId   = map.get(IMAGE);
-        Long tagId     = map.get(TAG);
-        Long mapId     = map.get(MAP);
+        Map<String, Long> annMap = new HashMap<>(1);
+        annMap.computeIfAbsent(TAG, map::get);
+        annMap.computeIfAbsent(MAP, map::get);
 
-        if (tagId != null && mapId != null) {
-            IJ.error(String.format("Cannot link %s and %s", type1, type2));
-        }
+        Map<String, Long> objMap = new HashMap<>(2);
+        objMap.computeIfAbsent(PROJECT, map::get);
+        objMap.computeIfAbsent(DATASET, map::get);
+        objMap.computeIfAbsent(IMAGE, map::get);
+        objMap.computeIfAbsent(WELL, map::get);
+        objMap.computeIfAbsent(PLATE, map::get);
+        objMap.computeIfAbsent(SCREEN, map::get);
 
         try {
-            // Link annotation to repository object
-            if (TAG.equals(t1) ^ TAG.equals(t2)) {
-                String obj = TAG.equals(t1) ? t2 : t1;
-
-                GenericRepositoryObjectWrapper<?> object = getRepositoryObject(obj, map.get(obj));
-                if (object != null) {
-                    object.addTag(client, tagId);
-                }
-            } else if (MAP.equals(t1) ^ MAP.equals(t2)) {
-                String obj = MAP.equals(t1) ? t2 : t1;
-
-                GenericRepositoryObjectWrapper<?> object = getRepositoryObject(obj, map.get(obj));
-                if (object != null) {
-                    object.link(client, client.getMapAnnotation(mapId));
-                }
-            } else if (datasetId == null || (projectId == null && imageId == null)) {
+            if (isInvalidLink(objMap, annMap)) {
                 IJ.error(String.format("Cannot link %s and %s", type1, type2));
+            } else if (annMap.size() == 1) { // Link annotation to repository object
+                String ann = annMap.keySet().iterator().next();
+                String obj = ann.equals(t1) ? t2 : t1;
+
+                GenericRepositoryObjectWrapper<?> object = getRepositoryObject(obj, map.get(obj));
+                if (object != null) {
+                    object.link(client, getAnnotation(ann, annMap.get(ann)));
+                }
             } else { // Or link dataset to image or project
+                Long projectId = map.get(PROJECT);
+                Long datasetId = map.get(DATASET);
+                Long imageId   = map.get(IMAGE);
+
                 DatasetWrapper dataset = client.getDataset(datasetId);
                 if (projectId != null) {
                     client.getProject(projectId).addDataset(client, dataset);
@@ -1218,42 +1263,40 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
         map.put(t1, id1);
         map.put(t2, id2);
 
-        Long projectId = map.get(PROJECT);
-        Long datasetId = map.get(DATASET);
-        Long imageId   = map.get(IMAGE);
-        Long tagId     = map.get(TAG);
-        Long mapId     = map.get(MAP);
+        Map<String, Long> objMap = new HashMap<>(2);
+        objMap.computeIfAbsent(PROJECT, map::get);
+        objMap.computeIfAbsent(DATASET, map::get);
+        objMap.computeIfAbsent(IMAGE, map::get);
+        objMap.computeIfAbsent(WELL, map::get);
+        objMap.computeIfAbsent(PLATE, map::get);
+        objMap.computeIfAbsent(SCREEN, map::get);
 
-        boolean linkAnnotations = tagId != null && mapId != null;
-        boolean tagObject = TAG.equals(t1) ^ TAG.equals(t2) && !linkAnnotations;
-        boolean mapObject = MAP.equals(t1) ^ MAP.equals(t2) && !linkAnnotations;
-        boolean linkDataset = datasetId != null && (projectId != null || imageId != null);
+        Map<String, Long> annMap = new HashMap<>(1);
+        annMap.computeIfAbsent(TAG, map::get);
+        annMap.computeIfAbsent(MAP, map::get);
 
         try {
-            // Unlink annotation from repository object
-            if (tagObject) {
-                String obj = TAG.equals(t1) ? t2 : t1;
+            if (isInvalidLink(objMap, annMap)) {
+                IJ.error(String.format("Cannot unlink %s and %s", type1, type2));
+            } else if (annMap.size() == 1) { // Unlink annotation from repository object
+                String ann = annMap.keySet().iterator().next();
+                String obj = ann.equals(t1) ? t2 : t1;
 
                 GenericRepositoryObjectWrapper<?> object = getRepositoryObject(obj, map.get(obj));
                 if (object != null) {
-                    object.unlink(client, client.getTag(tagId));
+                    object.unlink(client, getAnnotation(ann, annMap.get(ann)));
                 }
-            } else if (mapObject) {
-                String obj = MAP.equals(t1) ? t2 : t1;
+            } else { // Or unlink dataset from image or project
+                Long projectId = map.get(PROJECT);
+                Long datasetId = map.get(DATASET);
+                Long imageId   = map.get(IMAGE);
 
-                GenericRepositoryObjectWrapper<?> object = getRepositoryObject(obj, map.get(obj));
-                if (object != null) {
-                    object.unlink(client, client.getMapAnnotation(mapId));
-                }
-            } else if (linkDataset) { // Or unlink dataset from image or project
                 DatasetWrapper dataset = client.getDataset(datasetId);
                 if (projectId != null) {
                     client.getProject(projectId).removeDataset(client, dataset);
                 } else {
                     dataset.removeImage(client, client.getImage(imageId));
                 }
-            } else {
-                IJ.error(String.format("Cannot unlink %s and %s", type1, type2));
             }
         } catch (ServiceException | AccessException | ExecutionException | OMEROServerError e) {
             IJ.error(String.format("Cannot unlink %s and %s: %s", type1, type2, e.getMessage()));

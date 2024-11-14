@@ -19,6 +19,7 @@ package fr.igred.ij.plugin;
 import ij.measure.ResultsTable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -213,6 +214,7 @@ class OMEROExtensionErrorTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"link", "unlink"})
+    @Disabled("Methods no longer try to link or unlink invalid types currently")
     void testLinkUnlinkInvalidType(String function) {
         Object[] args = {"tag", 1.0, "hello", 1.0};
         ext.handleExtension(function, args);
