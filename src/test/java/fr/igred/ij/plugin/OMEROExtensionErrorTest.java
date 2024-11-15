@@ -212,6 +212,17 @@ class OMEROExtensionErrorTest {
     }
 
 
+    @Test
+    void testGetNameInvalidType() {
+        String   type   = "hello";
+        Object[] args   = {type, 1.0};
+        String   output = ext.handleExtension("getName", args);
+        String   error  = outContent.toString().trim();
+        assertTrue(output.isEmpty());
+        assertTrue(error.startsWith("Invalid type: hello."));
+    }
+
+
     @ParameterizedTest
     @ValueSource(strings = {"link", "unlink"})
     @Disabled("Methods no longer try to link or unlink invalid types currently")
@@ -237,11 +248,12 @@ class OMEROExtensionErrorTest {
         assertEquals(expected, outContent.toString().trim());
     }
 
+
     @Test
     void testKeyNotExist() {
-        final String key = "notExist";
+        final String key     = "notExist";
         final double imageId = 2;
-        Object[]     args      = {"image", imageId, key, null};
+        Object[]     args    = {"image", imageId, key, null};
         ext.handleExtension("getValue", args);
         String expected = "Could not retrieve value: Key \"" + key + "\" not found";
         assertEquals(expected, outContent.toString().trim());

@@ -1327,19 +1327,21 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
      * @return The object name.
      */
     public String getName(String type, long id) {
-        String name = null;
+        String name = "";
 
         GenericObjectWrapper<?> object = getObject(type, id);
-        if (object instanceof GenericRepositoryObjectWrapper<?>) {
-            name = ((GenericRepositoryObjectWrapper<?>) object).getName();
-        } else if (object instanceof TagAnnotationWrapper) {
-            name = ((TagAnnotationWrapper) object).getName();
-        } else if (object instanceof MapAnnotationWrapper) {
-            MapAnnotationWrapper map = (MapAnnotationWrapper) object;
-            name = map.getContentAsEntryList()
-                      .stream()
-                      .map(e -> e.getKey() + "\t" + e.getValue())
-                      .collect(Collectors.joining(String.format("%n")));
+        if (object != null) {
+            if (object instanceof GenericRepositoryObjectWrapper<?>) {
+                name = ((GenericRepositoryObjectWrapper<?>) object).getName();
+            } else if (object instanceof TagAnnotationWrapper) {
+                name = ((TagAnnotationWrapper) object).getName();
+            } else if (object instanceof MapAnnotationWrapper) {
+                MapAnnotationWrapper map = (MapAnnotationWrapper) object;
+                name = map.getContentAsEntryList()
+                          .stream()
+                          .map(e -> e.getKey() + "\t" + e.getValue())
+                          .collect(Collectors.joining(String.format("%n")));
+            }
         }
         return name;
     }
