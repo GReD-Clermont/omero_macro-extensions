@@ -224,11 +224,16 @@ class OMEROExtensionErrorTest {
 
 
     @ParameterizedTest
-    @ValueSource(strings = {"link", "unlink"})
-    void testCannotLinkOrUnlink(String function) {
-        Object[] args = {"hello", 1.0, "world", 1.0};
+    @CsvSource(delimiter = ';', value = {"link;hello;1.0;world;1.0",
+                                         "unlink;hello;1.0;world;1.0",
+                                         "link;image;image",
+                                         "link;image;project",
+                                         "link;image;screen",
+                                         "link;tag;kv-pair"})
+    void testCannotLinkOrUnlink(String function, String type1, String type2) {
+        Object[] args = {type1, 1.0, type2, 1.0};
         ext.handleExtension(function, args);
-        String expected = String.format("Cannot %s hello and world", function);
+        String expected = String.format("Cannot %s %s and %s", function, type1, type2);
         assertEquals(expected, outContent.toString().trim());
     }
 

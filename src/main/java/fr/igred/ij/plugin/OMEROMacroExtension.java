@@ -288,13 +288,6 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
                                   Map<String, Long> annotations) {
         Long projectId = objects.get(PROJECT);
         Long imageId   = objects.get(IMAGE);
-        Long screenId  = objects.get(SCREEN);
-        Long plateId   = objects.get(PLATE);
-        Long wellId    = objects.get(WELL);
-
-        Map<String, Long> tree = new HashMap<>(2);
-        tree.computeIfAbsent(PROJECT, objects::get);
-        tree.computeIfAbsent(DATASET, objects::get);
 
         Map<String, Long> hcs = new HashMap<>(3);
         hcs.computeIfAbsent(SCREEN, objects::get);
@@ -303,22 +296,18 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
 
         int nObjects     = objects.values().size();
         int nAnnotations = annotations.values().size();
-        int nTree        = tree.values().size();
         int nHCS         = hcs.values().size();
 
         boolean linkNotTwo      = nObjects + nAnnotations != 2;
         boolean linkAnnotations = nAnnotations == 2;
-        boolean linkTreeHCS     = nTree == 1 && nHCS == 1;
+        boolean linkObjectHCS   = nHCS >= 1 && nAnnotations == 0;
 
-        boolean linkScreenWell = screenId != null && wellId != null;
-        boolean linkImageBad = imageId != null &&
-                               (projectId != null || screenId != null || plateId != null);
+        boolean linkProjectImage = imageId != null && projectId != null;
 
         return linkNotTwo ||
                linkAnnotations ||
-               linkImageBad ||
-               linkScreenWell ||
-               linkTreeHCS;
+               linkObjectHCS ||
+               linkProjectImage;
     }
 
 
