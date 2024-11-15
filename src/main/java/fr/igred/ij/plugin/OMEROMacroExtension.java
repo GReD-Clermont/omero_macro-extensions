@@ -98,6 +98,7 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
             newDescriptor("createDataset", this, ARG_STRING, ARG_STRING, ARG_NUMBER + ARG_OPTIONAL),
             newDescriptor("createProject", this, ARG_STRING, ARG_STRING),
             newDescriptor("createTag", this, ARG_STRING, ARG_STRING),
+            newDescriptor("createKeyValuePair", this, ARG_STRING, ARG_STRING),
             newDescriptor("link", this, ARG_STRING, ARG_NUMBER, ARG_STRING, ARG_NUMBER),
             newDescriptor("unlink", this, ARG_STRING, ARG_NUMBER, ARG_STRING, ARG_NUMBER),
             newDescriptor("addFile", this, ARG_STRING, ARG_NUMBER, ARG_STRING),
@@ -923,6 +924,27 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
 
 
     /**
+     * Creates a key-value pair on OMERO.
+     *
+     * @param key   The key.
+     * @param value The value.
+     *
+     * @return The kv-pair ID.
+     */
+    public long createKeyValuePair(String key, String value) {
+        long id = -1;
+        try {
+            MapAnnotationWrapper pair = new MapAnnotationWrapper(key, value);
+            pair.saveAndUpdate(client);
+            id = pair.getId();
+        } catch (ServiceException | AccessException | ExecutionException e) {
+            IJ.error("Could not create kv-pair: " + e.getMessage());
+        }
+        return id;
+    }
+
+
+    /**
      * Creates a project on OMERO.
      *
      * @param name        The project name.
@@ -1546,7 +1568,6 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
      * @return The number of ROIs that were deleted.
      */
     public int removeROIs(long id) {
-
         int removed = 0;
         try {
             ImageWrapper     image = client.getImage(id);
@@ -1676,6 +1697,11 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
             case "createTag":
                 long tagId = createTag((String) args[0], (String) args[1]);
                 results = String.valueOf(tagId);
+                break;
+
+            case "createKeyValuePair":
+                long pairId = createKeyValuePair((String) args[0], (String) args[1]);
+                results = String.valueOf(pairId);
                 break;
 
             case "addToTable":

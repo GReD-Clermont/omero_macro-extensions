@@ -251,6 +251,20 @@ class OMEROExtensionTest {
     }
 
 
+    @Test
+    void testCreateAndLinkKVPair() {
+        final double projectId = 2;
+        Object[]     args      = {"TestKey", "TestValue"};
+        String       result    = ext.handleExtension("createKeyValuePair", args);
+        Double       id        = Double.parseDouble(result);
+        Object[]     args2     = {"kv-pair", id, "project", projectId};
+        ext.handleExtension("link", args2);
+        Object[] args3 = {"kv-pair", id};
+        ext.handleExtension("delete", args3);
+        assertNotNull(id);
+    }
+
+
     @ParameterizedTest
     @CsvSource(delimiter = ';', value = {"project;2.0;tag;1.0",
                                          "tag;1.0;dataset;3.0",
