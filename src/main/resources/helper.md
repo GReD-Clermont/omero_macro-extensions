@@ -47,6 +47,7 @@ Ext.list(type, parentType, parentId)
 
 Ext.getName(type, id)
 > Gets the name of the specified object, given its `type` and `id`.
+> In the case of key-value pairs, it returns keys and values separated by tabs, one pair per line.
 
 Ext.getImage(id)
 > Opens the image with the given `id`.  
@@ -54,8 +55,16 @@ Ext.getImage(id)
 
 Ext.getImage(id, region)
 > Opens a subregion of the image with the given `id`.
-> The region is specified as a string in the format "x:start:end,y:start:end,...".
+> The region is specified in one of two ways:
+> 1. using a ROI ID in OMERO
+> 2. as a string in the format "x:start:end,y:start:end,...".
 > Returns the image ID in ImageJ.
+
+Ext.getKeyValuePairs(type, id)
+> Returns the key-value pairs attached to the object with the given `type` and `id`.
+
+Ext.getValue(type, id, key, defaultValue)
+> Returns the value for the given key attached to the object with the given `type` and `id`.
 
 Ext.getROIs(imageId, toOverlay, property)
 > Retrieves the ROIs for the image with the given `imageId`.
@@ -73,6 +82,10 @@ Ext.getROIs(imageId, toOverlay, property)
 > Returns the number of ROIs in ImageJ.
 
 ### Saves data ###
+
+Ext.createKeyValuePair(key, value)
+> Creates a new key-value pair with the given `key` and `value`.  
+> Returns the new pair ID.
 
 Ext.createTag(name, description)
 > Creates a new tag with the given `name` and `description`.  
@@ -110,7 +123,7 @@ Ext.link(type1, id1, type2, id2)
 > Possible types are:
 >   * Project and Dataset
 >   * Dataset and Image
->   * Tag and Project, Dataset or Image
+>   * Tag or KV-pair and Project, Dataset, Screen, Plate, Well or Image
 
 ### Removes data on OMERO ###
 

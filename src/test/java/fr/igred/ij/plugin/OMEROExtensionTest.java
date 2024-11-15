@@ -117,7 +117,9 @@ class OMEROExtensionTest {
                                          "list;plates;1,2,3",
                                          "list;wells;1,2,3,4,5",
                                          "list;tags;1,2,3",
-                                         "list;tag;1,2,3",})
+                                         "list;tag;1,2,3",
+                                         "list;kv-pairs;4,5,6",
+                                         "list;kv-pair;4,5,6",})
     void testListAll(String extension, String type, String output) {
         Object[] args   = {type, null, null};
         String   result = ext.handleExtension(extension, args);
@@ -135,7 +137,9 @@ class OMEROExtensionTest {
                                          "list;screen;TestScreen;1",
                                          "list;plate;Plate Name 0;1,2",
                                          "list;tags;tag2;2",
-                                         "list;tag;tag2;2",})
+                                         "list;tag;tag2;2",
+                                         "list;kv-pairs;testKey1;4,5",
+                                         "list;kv-pair;testKey1;4,5",})
     void testListByName(String extension, String type, String name, String output) {
         Object[] args   = {type, name, null};
         String   result = ext.handleExtension(extension, args);
@@ -161,9 +165,16 @@ class OMEROExtensionTest {
                                          "list;screens;tag;1.0;1",
                                          "list;plates;tag;1.0;1",
                                          "list;wells;tag;1.0;1",
+                                         "list;tags;project;2.0;1",
+                                         "list;tags;dataset;3.0;1",
                                          "list;tags;screen;1.0;1",
                                          "list;tags;plate;1.0;1",
                                          "list;tags;well;1.0;1",
+                                         "list;kv-pairs;project;2.0;6",
+                                         "list;kv-pairs;dataset;3.0;6",
+                                         "list;kv-pairs;screen;1.0;6",
+                                         "list;kv-pairs;plate;1.0;6",
+                                         "list;kv-pairs;well;1.0;6",
                                          "list;plates;screen;2.0;2,3",
                                          "list;wells;screen;2.0;2,3,4,5",
                                          "list;images;screen;1.0;5,6",
@@ -174,7 +185,8 @@ class OMEROExtensionTest {
         Object[] args   = {type, parent, id};
         String   result = ext.handleExtension(extension, args);
 
-        String sortedIds = Arrays.stream(result.split(",")).map(Long::parseLong).sorted()
+        String sortedIds = Arrays.stream(result.split(","))
+                                 .map(Long::parseLong).sorted()
                                  .map(String::valueOf)
                                  .collect(Collectors.joining(","));
 
@@ -192,7 +204,8 @@ class OMEROExtensionTest {
                                          "getName;screen;1.0;TestScreen",
                                          "getName;plate;2.0;Plate Name 0",
                                          "getName;well;1.0;Well A-1",
-                                         "getName;tag;1.0;tag1",})
+                                         "getName;tag;1.0;tag1",
+                                         "getName;kv-pair;6.0;key\tvalue",})
     void testGetName(String extension, String type, double id, String output) {
         Object[] args   = {type, id};
         String   result = ext.handleExtension(extension, args);
@@ -213,7 +226,7 @@ class OMEROExtensionTest {
 
     @ParameterizedTest
     @NullSource
-    @ValueSource(doubles = {1.0})
+    @ValueSource(doubles = 1.0)
     void testCreateDataset(Double projectId) {
         Object[] args   = {"toDelete", "toBeDeleted", projectId};
         String   result = ext.handleExtension("createDataset", args);
@@ -238,12 +251,31 @@ class OMEROExtensionTest {
     }
 
 
+    @Test
+    void testCreateAndLinkKVPair() {
+        final double projectId = 2;
+        Object[]     args      = {"TestKey", "TestValue"};
+        String       result    = ext.handleExtension("createKeyValuePair", args);
+        Double       id        = Double.parseDouble(result);
+        Object[]     args2     = {"kv-pair", id, "project", projectId};
+        ext.handleExtension("link", args2);
+        Object[] args3 = {"kv-pair", id};
+        ext.handleExtension("delete", args3);
+        assertNotNull(id);
+    }
+
+
     @ParameterizedTest
-    @CsvSource(delimiter = ';', value = {"tag;1.0;project;2.0",
+    @CsvSource(delimiter = ';', value = {"project;2.0;tag;1.0",
                                          "tag;1.0;dataset;3.0",
                                          "tag;1.0;screen;1.0",
                                          "tag;1.0;plate;1.0",
                                          "tag;1.0;well;1.0",
+                                         "project;2.0;kv-pair;6.0",
+                                         "kv-pair;6.0;dataset;3.0",
+                                         "kv-pair;6.0;screen;1.0",
+                                         "kv-pair;6.0;plate;1.0",
+                                         "kv-pair;6.0;well;1.0",
                                          "dataset;3.0;project;2.0",
                                          "image;1.0;dataset;1.0",})
     void testUnlinkThenLink(String type1, double id1, String type2, double id2) {
@@ -326,10 +358,10 @@ class OMEROExtensionTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"x:100:200 y:1:511", "x:50:150 y:2:512", "x:50:150 y:2:513"})
-    void testGetImageTwoBounds(CharSequence bounds) {
+    void testGetImageTwoBounds(String bounds) {
         final int partSize = 100;
         final int fullSize = 510;
-        ImagePlus imp  = ext.getImage(1L, bounds);
+        ImagePlus imp      = ext.getImage(1L, bounds);
         assertEquals(partSize, imp.getWidth());
         assertEquals(fullSize, imp.getHeight());
     }
@@ -337,7 +369,7 @@ class OMEROExtensionTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"x:100: y::412", "X:100: Y::412", "x::412 y:100:"})
-    void testGetImageOneBound(CharSequence bounds) {
+    void testGetImageOneBound(String bounds) {
         final int size = 412;
         ImagePlus imp  = ext.getImage(1L, bounds);
         assertEquals(size, imp.getWidth());
@@ -347,13 +379,13 @@ class OMEROExtensionTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"x:300:480 y:24:36 z:1:3 c:0:4 t:3:6", "X:300:480 Y:24:36 Z:1:3 C:0:4 T:3:6"})
-    void testGetImageAllBounds(CharSequence bounds) {
+    void testGetImageAllBounds(String bounds) {
         final int sizeX = 180;
         final int sizeY = 12;
         final int sizeZ = 2;
         final int sizeC = 4;
         final int sizeT = 3;
-        ImagePlus imp  = ext.getImage(1L, bounds);
+        ImagePlus imp   = ext.getImage(1L, bounds);
         assertEquals(sizeX, imp.getWidth());
         assertEquals(sizeY, imp.getHeight());
         assertEquals(sizeZ, imp.getNSlices());
@@ -364,12 +396,12 @@ class OMEROExtensionTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"", "  ", "x: y:: ", "x::9999 y:0:9999 z:50:99 c::99 t::99", "^#azerty*$"})
-    void testGetImageNoBounds(CharSequence bounds) {
-        final int size = 512;
+    void testGetImageNoBounds(String bounds) {
+        final int size  = 512;
         final int sizeZ = 3;
         final int sizeC = 5;
         final int sizeT = 7;
-        ImagePlus imp  = ext.getImage(1L, bounds);
+        ImagePlus imp   = ext.getImage(1L, bounds);
         assertEquals(size, imp.getWidth());
         assertEquals(size, imp.getHeight());
         assertEquals(sizeZ, imp.getNSlices());
@@ -380,12 +412,12 @@ class OMEROExtensionTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"z:0", "z:2", "Z:0", "z:0:1"})
-    void testGetImageZ(CharSequence bounds) {
-        final int size = 512;
+    void testGetImageZ(String bounds) {
+        final int size  = 512;
         final int sizeZ = 1;
         final int sizeC = 5;
         final int sizeT = 7;
-        ImagePlus imp  = ext.getImage(1L, bounds);
+        ImagePlus imp   = ext.getImage(1L, bounds);
         assertEquals(size, imp.getWidth());
         assertEquals(size, imp.getHeight());
         assertEquals(sizeZ, imp.getNSlices());
@@ -396,12 +428,12 @@ class OMEROExtensionTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"c:0", "c:2", "C:0", "c:0:1"})
-    void testGetImageC(CharSequence bounds) {
-        final int size = 512;
+    void testGetImageC(String bounds) {
+        final int size  = 512;
         final int sizeZ = 3;
         final int sizeC = 1;
         final int sizeT = 7;
-        ImagePlus imp  = ext.getImage(1L, bounds);
+        ImagePlus imp   = ext.getImage(1L, bounds);
         assertEquals(size, imp.getWidth());
         assertEquals(size, imp.getHeight());
         assertEquals(sizeZ, imp.getNSlices());
@@ -412,17 +444,47 @@ class OMEROExtensionTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"t:0", "t:2", "T:0", "t:0:1"})
-    void testGetImageT(CharSequence bounds) {
-        final int size = 512;
+    void testGetImageT(String bounds) {
+        final int size  = 512;
         final int sizeZ = 3;
         final int sizeC = 5;
         final int sizeT = 1;
-        ImagePlus imp  = ext.getImage(1L, bounds);
+        ImagePlus imp   = ext.getImage(1L, bounds);
         assertEquals(size, imp.getWidth());
         assertEquals(size, imp.getHeight());
         assertEquals(sizeZ, imp.getNSlices());
         assertEquals(sizeC, imp.getNChannels());
         assertEquals(sizeT, imp.getNFrames());
+    }
+
+
+    @Test
+    void testGetImageFromROI() {
+        ImagePlus imp     = ext.getImage(1L, null);
+        Overlay   overlay = new Overlay();
+        Roi       roi     = new Roi(25, 30, 70, 50);
+        roi.setImage(imp);
+        overlay.add(roi);
+        imp.setOverlay(overlay);
+        int savedROIs = ext.saveROIs(imp, 1L, "");
+        overlay.clear();
+        imp.setOverlay(null);
+        int loadedROIs = ext.getROIs(imp, 1L, true, "");
+
+        Roi       retrievedRoi = imp.getOverlay().get(0);
+        String    roiId        = retrievedRoi.getProperty("ROI_ID");
+        ImagePlus cropped      = ext.getImage(1L, roiId);
+
+        ext.removeROIs(1L);
+        int clearedROIs = ext.getROIs(imp, 1L, true, "");
+
+        assertEquals(1, savedROIs);
+        assertEquals(1, loadedROIs);
+        assertEquals(0, clearedROIs);
+        assertEquals(25, Integer.parseInt(cropped.getProp("IMAGE_POS_X")));
+        assertEquals(30, Integer.parseInt(cropped.getProp("IMAGE_POS_Y")));
+        assertEquals(70, cropped.getWidth());
+        assertEquals(50, cropped.getHeight());
     }
 
 
@@ -434,12 +496,15 @@ class OMEROExtensionTest {
         roi.setImage(imp);
         overlay.add(roi);
         imp.setOverlay(overlay);
+
         int savedROIs = ext.saveROIs(imp, 1L, "");
         overlay.clear();
         int loadedROIs = ext.getROIs(imp, 1L, true, "");
-        ext.removeROIs(1L);
-        int clearedROIs = ext.getROIs(imp, 1L, true, "");
 
+        Object[] args = {1.0d};
+        ext.handleExtension("removeROIs", args);
+
+        int clearedROIs = ext.getROIs(imp, 1L, true, "");
 
         assertEquals(1, savedROIs);
         assertEquals(1, loadedROIs);
@@ -452,7 +517,7 @@ class OMEROExtensionTest {
     @CsvSource(delimiter = ';', value = {"image;1;null;testKey1\ttestValue1\ttestKey2\t20",
                                          "image;3;' ';testKey1 testValue1 testKey2 20",
                                          "image;2;&&;testKey1&&testValue2&&testKey2&&30",
-                                         "image;4;'';''"}, nullValues = {"null"})
+                                         "image;4;'';''"}, nullValues = "null")
     void testGetKeyValuePairs(String type, Double id, String separator, String output) {
         Object[] args   = {type, id, separator};
         String   result = ext.handleExtension("getKeyValuePairs", args);
@@ -464,7 +529,7 @@ class OMEROExtensionTest {
     @CsvSource(delimiter = ';', value = {"image;1;testKey1;null;testValue1",
                                          "image;3;testKey2;null;20",
                                          "image;2;testKey2;null;30",
-                                         "image;2;notExist;default;default"}, nullValues = {"null"})
+                                         "image;2;notExist;default;default"}, nullValues = "null")
     void testGetValue(String type, Double id, String key, String defaultValue, String output) {
         Object[] args   = {type, id, key, defaultValue};
         String   result = ext.handleExtension("getValue", args);
@@ -585,6 +650,7 @@ class OMEROExtensionTest {
         client.connect(HOSTNAME, (int) PORT, USERNAME, PASSWORD.toCharArray());
         List<TableWrapper> tables = client.getDataset(1L).getTables(client);
         client.disconnect();
+
         assertEquals(1, tables.size());
         assertEquals(2, tables.get(0).getRowCount());
         assertEquals(size1, tables.get(0).getData(0, 2));

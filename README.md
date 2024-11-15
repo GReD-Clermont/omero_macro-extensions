@@ -9,8 +9,8 @@ A plugin for ImageJ to provide macro extensions to access OMERO.
 
 1. Install the [OMERO.insight plugin](https://omero-guides.readthedocs.io/en/latest/fiji/docs/installation.html) (if you
    haven't already).
-2. Download the JAR file for this [library](https://github.com/GReD-Clermont/simple-omero-client/releases/tag/5.16.0/).
-3. Download the JAR file ([for this plugin](https://github.com/GReD-Clermont/omero_macro-extensions/releases/tag/1.3.3/)).
+2. Download the JAR file for this [library](https://github.com/GReD-Clermont/simple-omero-client/releases/tag/5.19.0/).
+3. Download the JAR file ([for this plugin](https://github.com/GReD-Clermont/omero_macro-extensions/releases/tag/1.4.0/)).
 4. Place these JAR files in your plugins folder.
 
 ## How to use
@@ -121,6 +121,16 @@ tagName = Ext.getName("tag", tagIds[0]);
 print(tagName);
 ```
 
+* Key-Value pairs:
+
+```
+kvpairs = Ext.list("kv-pairs");
+print(kvpairs);
+kvIds = split(kvpairs,",");
+kvName = Ext.getName("kvName", kvIds[0]);
+print(kvName);
+```
+
 ### Listing objects with a given name
 
 It is also possible to list objects with a specific name:
@@ -185,6 +195,26 @@ tagName = Ext.getName("tag", tagIds[0]);
 print(tagName);
 ```
 
+Key-Value pairs can also be listed for a given object:
+
+```
+pairs = Ext.list("kv-pairs", "image", imageIds[0]);
+print(pairs);
+pairIds = split(pairs,",");
+kvs = Ext.getName("kv-pair", pairIds[0]);
+print(kvs);
+```
+or:
+```
+kvpairs = Ext.getKeyValuePairs("image", imageIds[0]);
+print(kvpairs);
+```
+or for a given key:
+```
+values = Ext.getValues("image", imageIds[0], "key", defaultValue);
+print(values);
+```
+
 Similarly, a dataset ID can be used to retrieve its images:
 
 ```
@@ -222,7 +252,7 @@ imageName = Ext.getName("image", imageIds[0]);
 print(imageName);
 ```
 
-### Creating projects, datasets and tags
+### Creating projects, datasets, tags and key-value pairs
 
 Projects can be created with *Ext.createProject*:
 
@@ -242,6 +272,12 @@ Tags can be created with *Ext.createTag*:
 tagId = Ext.createTag(name, description);
 ```
 
+Key-value pairs can be created with *Ext.createKeyValuePair*:
+
+```
+pairId = Ext.createKeyValuePair(key, value);
+```
+
 ### Linking/unlinking objects
 
 Objects can be linked with *Ext.link*, e.g.:
@@ -253,7 +289,7 @@ Ext.link("dataset", datasetId, "tag", tagId);
 They can also be unlinked with *Ext.unlink*, e.g.:
 
 ```
-Ext.unlink("dataset", datasetId, "tag", tagId);
+Ext.unlink("dataset", datasetId, "kv-pair", pairId);
 ```
 
 ### Deleting objects
@@ -272,8 +308,16 @@ Pixel intensities can be retrieved from images:
 imageplusID = Ext.getImage(imageIds[0]);
 ```
 
-Images can also be cropped on import by specifying the ROI as a String of the form:
-"x:xstart:xend,y:ystart:yend,c:cstart:cend,z:zstart:zend,t:tstart:tend".
+Images can also be cropped on import. In this case, image properties containing the position of the crop in the original 
+image can be retrieved (IMAGE_POS_X, IMAGE_POS_Y, etc.).
+
+This crop can be done by specifying the ROI in one of two ways:
+1. using the ROI ID (as a String) from OMERO, for example:
+```
+imageplusID = Ext.getImage(imageIds[0], Roi.getProperty("ROI_ID"));
+```
+   
+2. as a String of the form: "x:xstart:xend,y:ystart:yend,c:cstart:cend,z:zstart:zend,t:tstart:tend". 
 For example, cropping a 512x512x3x100x5 image starting at (0,0,0,50,3) and ending at (100,100,2,99,3) can be done with:
 
 ```

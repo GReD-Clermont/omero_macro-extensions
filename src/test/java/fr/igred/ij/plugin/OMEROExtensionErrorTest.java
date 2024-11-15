@@ -16,8 +16,10 @@
 package fr.igred.ij.plugin;
 
 
+import ij.measure.ResultsTable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -30,6 +32,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.nio.file.Files;
+import java.util.ArrayList;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -144,6 +147,15 @@ class OMEROExtensionErrorTest {
 
 
     @Test
+    void testGetImageFromROIError() {
+        Object[] args = {1.0d, "-1"};
+        ext.handleExtension("getImage", args);
+        String expected = "Could not retrieve image: ROI not found: -1";
+        assertEquals(expected, outContent.toString().trim());
+    }
+
+
+    @Test
     void testListForUserError() {
         Object[] args = {"hello"};
         ext.handleExtension("listForUser", args);
@@ -188,6 +200,7 @@ class OMEROExtensionErrorTest {
                                          "hello;plate;2",
                                          "hello;well;2",
                                          "hello;tag;2",
+                                         "hello;kv-pair;2",
                                          "hello;TestDatasetImport;",
                                          "hello;;",})
     void testListInvalidType(String type1, String type2, Double id) {
@@ -199,8 +212,20 @@ class OMEROExtensionErrorTest {
     }
 
 
+    @Test
+    void testGetNameInvalidType() {
+        String   type   = "hello";
+        Object[] args   = {type, 1.0};
+        String   output = ext.handleExtension("getName", args);
+        String   error  = outContent.toString().trim();
+        assertTrue(output.isEmpty());
+        assertTrue(error.startsWith("Invalid type: hello."));
+    }
+
+
     @ParameterizedTest
     @ValueSource(strings = {"link", "unlink"})
+    @Disabled("Methods no longer try to link or unlink invalid types currently")
     void testLinkUnlinkInvalidType(String function) {
         Object[] args = {"tag", 1.0, "hello", 1.0};
         ext.handleExtension(function, args);
@@ -210,21 +235,60 @@ class OMEROExtensionErrorTest {
 
 
     @ParameterizedTest
-    @ValueSource(strings = {"link", "unlink"})
-    void testCannotLinkOrUnlink(String function) {
-        Object[] args = {"hello", 1.0, "world", 1.0};
+    @CsvSource(delimiter = ';', value = {"link;hello;1.0;world;1.0",
+                                         "unlink;hello;1.0;world;1.0",
+                                         "link;image;image",
+                                         "link;image;project",
+                                         "link;image;screen",
+                                         "link;tag;kv-pair"})
+    void testCannotLinkOrUnlink(String function, String type1, String type2) {
+        Object[] args = {type1, 1.0, type2, 1.0};
         ext.handleExtension(function, args);
-        String expected = String.format("Cannot %s hello and world", function);
+        String expected = String.format("Cannot %s %s and %s", function, type1, type2);
         assertEquals(expected, outContent.toString().trim());
     }
 
+
     @Test
     void testKeyNotExist() {
-        final String key = "notExist";
+        final String key     = "notExist";
         final double imageId = 2;
-        Object[]     args      = {"image", imageId, key, null};
+        Object[]     args    = {"image", imageId, key, null};
         ext.handleExtension("getValue", args);
         String expected = "Could not retrieve value: Key \"" + key + "\" not found";
+        assertEquals(expected, outContent.toString().trim());
+    }
+
+
+    @Test
+    void testClearTable() throws Exception {
+        long   imageId = 1L;
+        String label1  = "test";
+        String label2  = "test2";
+        double size1   = 25.023579d;
+        double size2   = 50.0d;
+
+        ResultsTable rt1 = new ResultsTable();
+        rt1.incrementCounter();
+        rt1.setLabel(label1, 0);
+        rt1.setValue("Size", 0, size1);
+
+        ResultsTable rt2 = new ResultsTable();
+        rt2.incrementCounter();
+        rt2.setLabel(label2, 0);
+        rt2.setValue("Size", 0, size2);
+
+        ext.addToTable("test_table", rt1, imageId, new ArrayList<>(0), null);
+        ext.addToTable("test_table", rt2, imageId, new ArrayList<>(0), null);
+
+        Object[] args2 = {"test_table"};
+        ext.handleExtension("clearTable", args2);
+
+        File     textFile = new File("test.txt");
+        Object[] args3    = {"test_table", textFile.getCanonicalPath(), null};
+        ext.handleExtension("saveTableAsFile", args3);
+
+        String expected = "Table does not exist: test_table";
         assertEquals(expected, outContent.toString().trim());
     }
 
