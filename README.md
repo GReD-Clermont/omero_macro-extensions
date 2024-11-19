@@ -127,7 +127,7 @@ print(tagName);
 kvpairs = Ext.list("kv-pairs");
 print(kvpairs);
 kvIds = split(kvpairs,",");
-kvName = Ext.getName("kvName", kvIds[0]);
+kvName = Ext.getName("kv-pair", kvIds[0]);
 print(kvName);
 ```
 
