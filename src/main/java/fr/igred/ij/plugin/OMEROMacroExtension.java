@@ -73,10 +73,13 @@ import static ij.macro.ExtensionDescriptor.newDescriptor;
 import static java.lang.Integer.parseInt;
 
 
+/** This class provides a set of ImageJ macros to interact with OMERO. */
 public class OMEROMacroExtension implements PlugIn, MacroExtension {
 
+    /** The default delimiter for table files. */
     public static final char DEFAULT_DELIMITER = '\t';
 
+    /** The argument types. */
     private static final String PROJECT = "project";
     private static final String DATASET = "dataset";
     private static final String IMAGE   = "image";
@@ -87,9 +90,11 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
     private static final String MAP     = "kv-pair";
     private static final String INVALID = "Invalid type";
 
+    /** Templates for error messages. */
     private static final String ERROR_POSSIBLE_VALUES = "%s: %s. Possible values are: %s";
     private static final String ERROR_RETRIEVE_IN     = "Could not retrieve %s in %s: %s";
 
+    /** Macro functions declaration. */
     private final ExtensionDescriptor[] extensions = {
             newDescriptor("connectToOMERO", this, ARG_STRING, ARG_NUMBER, ARG_STRING, ARG_STRING),
             newDescriptor("switchGroup", this, ARG_NUMBER),
@@ -123,11 +128,16 @@ public class OMEROMacroExtension implements PlugIn, MacroExtension {
             newDescriptor("disconnect", this),
             };
 
+    /** The active tables. */
     private final Map<String, TableWrapper> tables = new HashMap<>(1);
 
-    private Client client   = new Client();
+    /** The active client. */
+    private Client client = new Client();
+
+    /** The alternative client for sudo commands. */
     private Client switched = null;
 
+    /** The active user. */
     private ExperimenterWrapper user = null;
 
 
